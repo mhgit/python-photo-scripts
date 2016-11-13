@@ -1,0 +1,1 @@
+Hopefully these can be installed in home/bin on the nas under the martinh user.
