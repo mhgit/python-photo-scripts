@@ -8,25 +8,53 @@ import os
 import shutil
 import sys, getopt
 
-# make sure that these directories exist
-dirToDefault = "/share/backup-jobs/aws-glacier"
-dirToPrefix = "backup_"
+IGNORE_PATTERNS = ('*.DS_Store','*.@__thumb')
 
-# From folder probably needs to come in from a parameter.
-# Next step, logon and test.  Pass in and check all parsing
+dirToDefault = "/share/backup-jobs/aws-glacier"
+dirToTarFilePrefix = "backup_"
+
+# list files
+def listtree(src, ignore=None):
+   names = os.listdir(src)
+   if ignore is not None:
+      ignored_names = ignore(src, names)
+   else:
+      ignored_names = set()
+
+   errors = []
+   for name in names:
+      if name in ignored_names:
+         print 'ignoring: [{}]'.format(os.path.join(src, name))
+         continue
+      srcname = os.path.join(src, name)
+      try:
+         if os.path.isdir(srcname):
+            listtree(srcname, ignore)
+         else:
+            print 'including: [{}]'.format(srcname)
+
+      # XXX What about devices, sockets etc.?
+      except (IOError, os.error) as why:
+         errors.append((srcname, str(why)))
+      # catch the Error from the recursive listtree so that we can
+      # continue with other files
+      except EnvironmentError as err:
+         errors.extend(err.args[0])
+   if errors:
+      raise Exception(errors)
+   return;
 
 def main(argv):
    dirFrom = ''
-   dirTo = ''
+   dirTo = dirToDefault
    try:
-      opts, args = getopt.getopt(argv, "hd:o:", ["input-dir=","output-dir="])
+      opts, args = getopt.getopt(argv, "hld:o:", ["input-dir=","output-dir="])
    except getopt.GetoptError:
       print 'org-arc.py -d <input director> -o <output directory>'
       sys.exit(2)
-
+#todo improve the help
    for opt, arg in opts:
       if opt == '-h':
-         print "opt [%], arg [%]" % (opt, arg)
          print sys.argv[0] + ' -d <input directory>'
          sys.exit()
 
@@ -36,14 +64,24 @@ def main(argv):
       elif opt in ("-d", "--input-dir"):
          dirFrom = arg
 
-   if dirTo == '':
-      dirTo = dirToDefault
+      elif opt == '-l':
+         listtree(src=dirFrom, ignore=shutil.ignore_patterns(*IGNORE_PATTERNS))
+
 
    print 'input  directory is [%s]' % dirFrom
    print 'output directory is [%s]' % dirTo
 
+
+
+
 if __name__ == "__main__":
    main(sys.argv[1:])
+
+
+
+
+
+
 
 # moving files
 def copytree(src, dst, symlinks=False, ignore=None):
