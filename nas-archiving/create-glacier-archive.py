@@ -9,26 +9,38 @@ import shutil
 import sys, getopt
 
 # make sure that these directories exist
-dir_to = "/share/backup-jobs/aws-glacier"
-dir_to_prefix = "backup_"
+dirToDefault = "/share/backup-jobs/aws-glacier"
+dirToPrefix = "backup_"
 
 # From folder probably needs to come in from a parameter.
 # Next step, logon and test.  Pass in and check all parsing
 
 def main(argv):
-   dir_from = ''
+   dirFrom = ''
+   dirTo = ''
    try:
-      opts, args = getopt.getopt(argv,"hdir:",["source-dir="])
+      opts, args = getopt.getopt(argv, "hd:o:", ["input-dir=","output-dir="])
    except getopt.GetoptError:
-      print 'org-arc.py -dir <input director> '
+      print 'org-arc.py -d <input director> -o <output directory>'
       sys.exit(2)
+
    for opt, arg in opts:
       if opt == '-h':
-         print 'org-arc.py -dir <input director> '
+         print "opt [%], arg [%]" % (opt, arg)
+         print sys.argv[0] + ' -d <input directory>'
          sys.exit()
-      elif opt in ("-dir", "--source-dir"):
-         dir_from = arg
-   print 'Input directory = "', inputfile
+
+      elif opt in ("-o", "--output-dir"):
+         dirTo = arg
+
+      elif opt in ("-d", "--input-dir"):
+         dirFrom = arg
+
+   if dirTo == '':
+      dirTo = dirToDefault
+
+   print 'input  directory is [%s]' % dirFrom
+   print 'output directory is [%s]' % dirTo
 
 if __name__ == "__main__":
    main(sys.argv[1:])
