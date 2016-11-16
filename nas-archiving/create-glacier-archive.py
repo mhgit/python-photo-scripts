@@ -25,6 +25,11 @@ def printHelp():
    print ''
    print sys.argv[0] + ' [-h] [l | list] [s | summary] [i | input-dir] [o | output-dir]'
    print ''
+   print 'Creates a tar cleaned of all files we do not want to send to offline archive.'
+   print 'Ignores symbolic links'
+   print 'Ignored names: [{}]'.format(', '.join(IGNORE_PATTERNS))
+
+   print ''
    print 'Typical use cases:'
    print ''
 
@@ -40,6 +45,7 @@ def printHelp():
    print 'With no output the default location is used: [{}]'.format(dirToDefault)
    print sys.argv[0] + ' -i <input directory>'
    print sys.argv[0] + ' -i <input directory> -o <output directory [{}]>'.format(dirToDefault)
+   print ''
 
 
 # Collect skipped file
@@ -107,11 +113,10 @@ def main(argv):
 
       elif opt in ("-i", "--input-dir"):
          dirFrom = arg
+         listtree(src=dirFrom, ignore=shutil.ignore_patterns(*IGNORE_PATTERNS))
 
       elif opt in ('-l', "--list"):
          print 'Ignore Names: [{}]'.format(', '.join(IGNORE_PATTERNS))
-
-         listtree(src=dirFrom, ignore=shutil.ignore_patterns(*IGNORE_PATTERNS))
 
          print '--Include--'
          for fileName in sorted(includedFiles):
@@ -120,6 +125,7 @@ def main(argv):
          print '--Ignored--'
          for fileStatus in sorted(ignoredFiles):
             print '[{}],[{}]'.format(fileStatus.why, fileStatus.fileName)
+
 
 
 
