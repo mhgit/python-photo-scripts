@@ -21,6 +21,27 @@ class FileStatus:
    pass
 
 
+def printHelp():
+   print ''
+   print sys.argv[0] + ' [-h] [l | list] [s | summary] [i | input-dir] [o | output-dir]'
+   print ''
+   print 'Typical use cases:'
+   print ''
+
+   print 'Report a dry run:'
+   print sys.argv[0] + ' -d <input directory> -l'
+   print ''
+
+   print 'Report summary:'
+   print sys.argv[0] + ' -i <input directory> -s'
+   print ''
+
+   print 'Creating archives:'
+   print 'With no output the default location is used: [{}]'.format(dirToDefault)
+   print sys.argv[0] + ' -i <input directory>'
+   print sys.argv[0] + ' -i <input directory> -o <output directory [{}]>'.format(dirToDefault)
+
+
 # Collect skipped file
 def addSkipFile(ignoredFiles, src, name, why):
    fileStatus = FileStatus()
@@ -71,23 +92,23 @@ def main(argv):
    dirTo = dirToDefault
 
    try:
-      opts, args = getopt.getopt(argv, "hld:o:", ["input-dir=","output-dir="])
+      opts, args = getopt.getopt(argv, "hi:lo:s", ["input-dir=","list","output-dir=","summary"])
    except getopt.GetoptError:
-      print 'org-arc.py -d <input director> -o <output directory>'
+      printHelp()
       sys.exit(2)
 #todo improve the help
    for opt, arg in opts:
       if opt == '-h':
-         print sys.argv[0] + ' -d <input directory>'
+         printHelp()
          sys.exit()
 
       elif opt in ("-o", "--output-dir"):
          dirTo = arg
 
-      elif opt in ("-d", "--input-dir"):
+      elif opt in ("-i", "--input-dir"):
          dirFrom = arg
 
-      elif opt == '-l':
+      elif opt in ('-l', "--list"):
          print 'Ignore Names: [{}]'.format(', '.join(IGNORE_PATTERNS))
 
          listtree(src=dirFrom, ignore=shutil.ignore_patterns(*IGNORE_PATTERNS))
