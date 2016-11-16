@@ -7,31 +7,50 @@
 import os
 import shutil
 import sys, getopt
+from sets import Set
 
 IGNORE_PATTERNS = ('*.DS_Store','*.@__thumb')
 
 dirToDefault = "/share/backup-jobs/aws-glacier"
 dirToTarFilePrefix = "backup_"
 
+ignoredFiles = set()
+includedFiles = set()
+
+class FileStatus:
+   pass
+
+
+# Collect skipped file
+def addSkipFile(ignoredFiles, src, name, why):
+   fileStatus = FileStatus()
+   fileStatus.why = why
+   fileStatus.fileName = os.path.join(src, name)
+   ignoredFiles.add(fileStatus)
+
+   return;
+
 # list files
 def listtree(src, ignore=None):
    names = os.listdir(src)
    if ignore is not None:
-      ignored_names = ignore(src, names)
+      ignoredNames = ignore(src, names)
    else:
-      ignored_names = set()
+      ignoredNames = set()
 
    errors = []
    for name in names:
-      if name in ignored_names:
-         print 'ignoring: [{}]'.format(os.path.join(src, name))
+      if name in ignoredNames:
+         addSkipFile(ignoredFiles, src, name, 'skip pattern match')
          continue
       srcname = os.path.join(src, name)
       try:
          if os.path.isdir(srcname):
             listtree(srcname, ignore)
+         elif os.path.islink(srcname):
+            addSkipFile(ignoredFiles, src, name, 'skip symbolic link')
          else:
-            print 'including: [{}]'.format(srcname)
+            includedFiles.add(srcname)
 
       # XXX What about devices, sockets etc.?
       except (IOError, os.error) as why:
@@ -42,11 +61,15 @@ def listtree(src, ignore=None):
          errors.extend(err.args[0])
    if errors:
       raise Exception(errors)
+
+
    return;
+
 
 def main(argv):
    dirFrom = ''
    dirTo = dirToDefault
+
    try:
       opts, args = getopt.getopt(argv, "hld:o:", ["input-dir=","output-dir="])
    except getopt.GetoptError:
@@ -65,11 +88,20 @@ def main(argv):
          dirFrom = arg
 
       elif opt == '-l':
+         print 'Ignore Names: [{}]'.format(', '.join(IGNORE_PATTERNS))
+
          listtree(src=dirFrom, ignore=shutil.ignore_patterns(*IGNORE_PATTERNS))
 
+         print '--Include--'
+         for fileName in sorted(includedFiles):
+            print '[{}]'.format(fileName)
 
-   print 'input  directory is [%s]' % dirFrom
-   print 'output directory is [%s]' % dirTo
+         print '--Ignored--'
+         for fileStatus in sorted(ignoredFiles):
+            print '[{}],[{}]'.format(fileStatus.why, fileStatus.fileName)
+
+
+
 
 
 
@@ -78,50 +110,6 @@ if __name__ == "__main__":
    main(sys.argv[1:])
 
 
-
-
-
-
-
-# moving files
-def copytree(src, dst, symlinks=False, ignore=None):
-    names = os.listdir(src)
-    if ignore is not None:
-        ignored_names = ignore(src, names)
-    else:
-        ignored_names = set()
-
-    os.makedirs(dst)
-    errors = []
-    for name in names:
-        if name in ignored_names:
-            continue
-        srcname = os.path.join(src, name)
-        dstname = os.path.join(dst, name)
-        try:
-            if symlinks and os.path.islink(srcname):
-                linkto = os.readlink(srcname)
-                os.symlink(linkto, dstname)
-            elif os.path.isdir(srcname):
-                copytree(srcname, dstname, symlinks, ignore)
-            else:
-                copy2(srcname, dstname)
-            # XXX What about devices, sockets etc.?
-        except (IOError, os.error) as why:
-            errors.append((srcname, dstname, str(why)))
-        # catch the Error from the recursive copytree so that we can
-        # continue with other files
-        except Error as err:
-            errors.extend(err.args[0])
-    try:
-        copystat(src, dst)
-    except WindowsError:
-        # can't copy file access times on Windows
-        pass
-    except OSError as why:
-        errors.extend((src, dst, str(why)))
-    if errors:
-        raise Error(errors)
 
 # making a tar
 def make_tarfile(output_filename, source_dir):
