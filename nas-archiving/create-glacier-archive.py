@@ -90,7 +90,7 @@ def listtree(src, ignore=None):
          elif os.path.islink(srcname):
             addSkipFile(ignoredFiles, src, name, 'skip symbolic link')
          else:
-            includedFiles.add(os.path.abspath(srcname))
+            includedFiles.add(srcname)
 
       # What about devices, sockets etc.?
       except (IOError, os.error) as why:
@@ -152,7 +152,7 @@ def createArchive(dirFrom, dirTo, dirToPrefix, includedFiles, flags):
       for name in includedFiles:
          if (flags.verbose == True):
             print '+ {}'.format(name)
-            tar.add(name)
+         tar.add(name, arcname=os.path.abspath(name))
 
 
 
@@ -217,16 +217,6 @@ if __name__ == "__main__":
    main(sys.argv[1:])
 
 
-
-# making a tar
-def make_tarfile(output_filename, source_dir):
-    with tarfile.open(output_filename, "w:gz") as tar:
-        tar.add(source_dir, arcname=os.path.basename(source_dir))
-
-# The old script used to take tars and put them into a folder based on their names.
-# I would suggest just creating the tar in the right place in the first place.
-# This is because glacier backups begin with a source folder.
-# i.e. backup_tarfilename
 
 
 
