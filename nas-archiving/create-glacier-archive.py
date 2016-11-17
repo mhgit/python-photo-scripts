@@ -19,11 +19,14 @@ includedFiles = set()
 
 class FileStatus:
    pass
+class Flags:
+   pass
+
 
 
 def printHelp():
    print ''
-   print sys.argv[0] + ' [-h] [l | list] [s | summary] [i | input-dir] [o | output-dir]'
+   print sys.argv[0] + ' [-h] [l | list] [s | summary] [v | verbose] [i | input-dir] [o | output-dir]'
    print ''
    print 'Creates a tar cleaned of all files we do not want to send to offline archive.'
    print 'Ignores symbolic links'
@@ -44,7 +47,10 @@ def printHelp():
    print 'Creating archives:'
    print 'With no output the default location is used: [{}]'.format(dirToDefault)
    print sys.argv[0] + ' -i <input directory>'
-   print sys.argv[0] + ' -i <input directory> -o <output directory [{}]>'.format(dirToDefault)
+   print sys.argv[0] + ' -i <input directory> -o <output directory [{}]>'
+   print 'Verbose and summary'
+   print sys.argv[0] + ' -i <input directory> -o <output directory [{}]> -vs'
+
    print ''
 
 
@@ -70,6 +76,7 @@ def listtree(src, ignore=None):
       if name in ignoredNames:
          addSkipFile(ignoredFiles, src, name, 'skip pattern match')
          continue
+
       srcname = os.path.join(src, name)
       try:
          if os.path.isdir(srcname):
@@ -92,46 +99,74 @@ def listtree(src, ignore=None):
 
    return;
 
+def printList(includedFiles, ignoredFiles):
+   print 'Ignore Names: [{}]'.format(', '.join(IGNORE_PATTERNS))
+
+   print '--Include--'
+   for fileName in sorted(includedFiles):
+      print '[{}]'.format(fileName)
+
+   print '--Ignored--'
+   for fileStatus in sorted(ignoredFiles):
+      print '[{}],[{}]'.format(fileStatus.why, fileStatus.fileName)
+   return;
+
+def printSummary(includedFiles, ignoredFiles):
+   print '{} included files.'.format(len(includedFiles))
+   print '{} ignored files.'.format(len(ignoredFiles))
+   return;
 
 def main(argv):
+   flags = Flags()
+   flags.verbose = False
+   flags.summary = False
+   flags.list = False
+
    dirFrom = ''
    dirTo = dirToDefault
 
    try:
-      opts, args = getopt.getopt(argv, "hi:lo:s", ["input-dir=","list","output-dir=","summary"])
+      opts, args = getopt.getopt(argv, "hi:lo:sv", ["input-dir=","list","output-dir=","summary","verbose"])
    except getopt.GetoptError:
       printHelp()
       sys.exit(2)
-#todo improve the help
+
    for opt, arg in opts:
-      if opt == '-h':
+      if opt == "-h":
          printHelp()
          sys.exit()
 
-      elif opt in ("-o", "--output-dir"):
+      if opt in ("-o", "--output-dir"):
          dirTo = arg
 
-      elif opt in ("-i", "--input-dir"):
+      if opt in ("-i", "--input-dir"):
          dirFrom = arg
          listtree(src=dirFrom, ignore=shutil.ignore_patterns(*IGNORE_PATTERNS))
 
-      elif opt in ('-l', "--list"):
-         print 'Ignore Names: [{}]'.format(', '.join(IGNORE_PATTERNS))
+      if opt in ("-s", "--summary"):
+         flags.summary = True
 
-         print '--Include--'
-         for fileName in sorted(includedFiles):
-            print '[{}]'.format(fileName)
+      if opt in ("-v", "--verbose"):
+         flags.verbose = True
 
-         print '--Ignored--'
-         for fileStatus in sorted(ignoredFiles):
-            print '[{}],[{}]'.format(fileStatus.why, fileStatus.fileName)
+      if opt in ("-l", "--list"):
+         flags.list = True
 
 
+   if (flags.list == True):
+      printList(includedFiles, ignoredFiles)
+
+   if (flags.summary == True):
+      printSummary(includedFiles, ignoredFiles)
+
+   # Do no further processing if we are only asked to list, this is a dry run.
+   if (flags.list == True):
+      sys.exit()
 
 
-
-
-
+   # todo this is where the tar will be made.
+   # implement verbose setting as you go i.e print progress
+   sys.exit()
 
 if __name__ == "__main__":
    main(sys.argv[1:])
