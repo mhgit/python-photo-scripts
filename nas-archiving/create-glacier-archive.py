@@ -1,5 +1,3 @@
-#!/usr/local/bin/python
-
 # Create a clean archive of a photo store.
 # Sends the files to a default location that can be overridden.
 # Todo, would be handy to be able to create an optional log for checking before the
@@ -59,6 +57,7 @@ def printHelp():
    print ''
 
 
+#
 # Collect skipped file
 def addSkipFile(ignoredFiles, src, name, why):
    fileStatus = FileStatus()
@@ -68,6 +67,8 @@ def addSkipFile(ignoredFiles, src, name, why):
 
    return;
 
+
+#
 # Find files
 def listtree(src, ignore=None):
    names = os.listdir(src)
@@ -105,6 +106,8 @@ def listtree(src, ignore=None):
 
    return;
 
+
+#
 # Print files which will be added / not added to archive
 def printList(includedFiles, ignoredFiles):
    print 'Ignore Names: [{}]'.format(', '.join(IGNORE_PATTERNS))
@@ -119,6 +122,8 @@ def printList(includedFiles, ignoredFiles):
       print '[{}],[{}]'.format(fileStatus.why, fileStatus.fileName)
    return;
 
+
+#
 # Print a sum totals.
 def printSummary(includedFiles, ignoredFiles):
    print ''
@@ -127,6 +132,8 @@ def printSummary(includedFiles, ignoredFiles):
    print '{} ignored files.'.format(len(ignoredFiles))
    return;
 
+
+#
 # Create a new location for the file based on its name
 def createToDir(dirFrom, dirTo, dirToPrefix, toDirPathEnd):
 
@@ -137,6 +144,8 @@ def createToDir(dirFrom, dirTo, dirToPrefix, toDirPathEnd):
 
    return createDir;
 
+
+#
 # Build the compressed archive
 def createArchive(dirFrom, dirTo, dirToPrefix, includedFiles, flags):
 
@@ -148,16 +157,19 @@ def createArchive(dirFrom, dirTo, dirToPrefix, includedFiles, flags):
    if (flags.verbose == True):
       print 'Archive to: [{}]'.format(tarPath)
 
+   i = len(includedFiles)
+
+   if (os.path.isfile(tarPath)):
+      raise Exception("Tar exists! Will not overwrite! " + tarPath)
+
    with tarfile.open(tarPath, "w:bz2") as tar:
       for name in includedFiles:
          if (flags.verbose == True):
-            print '+ {}'.format(name)
+            print 'a[{}] {}'.format(i, name)
          tar.add(name, arcname=os.path.abspath(name))
-
-
-
-
+         i -= 1
    return;
+
 
 #
 # Create a clean archive.  Process incoming args.
@@ -212,6 +224,7 @@ def main(argv):
    createArchive(dirFrom, dirTo, dirToPrefix, includedFiles, flags)
 
    sys.exit()
+
 
 if __name__ == "__main__":
    main(sys.argv[1:])
