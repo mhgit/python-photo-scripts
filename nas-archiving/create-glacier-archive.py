@@ -11,6 +11,7 @@
 import os
 import shutil
 import sys, getopt
+import tarfile
 from sets import Set
 
 IGNORE_PATTERNS = ('*.DS_Store','*.@__thumb')
@@ -143,9 +144,17 @@ def createArchive(dirFrom, dirTo, dirToPrefix, includedFiles, flags):
    archiveToDir = createToDir(dirFrom, dirTo, dirToPrefix, toDirPathEnd)
    tarPath = archiveToDir + '/' + toDirPathEnd + '.tar.bz2'
 
-   print 'Archive to: [{}]'.format(tarPath)
 
-   #tar = tarfile.open(archiveToDir +
+   if (flags.verbose == True):
+      print 'Archive to: [{}]'.format(tarPath)
+
+   with tarfile.open(tarPath, "w:bz2") as tar:
+      for name in includedFiles:
+         if (flags.verbose == True):
+            print '+ [{}]'.format(name)
+            tar.add(name)
+   tar.close
+
 
 
 
