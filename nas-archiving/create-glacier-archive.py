@@ -101,6 +101,7 @@ def listtree(src, ignore=None):
 
    return;
 
+#
 def printList(includedFiles, ignoredFiles):
    print 'Ignore Names: [{}]'.format(', '.join(IGNORE_PATTERNS))
 
@@ -108,6 +109,7 @@ def printList(includedFiles, ignoredFiles):
    for fileName in sorted(includedFiles):
       print '[{}]'.format(fileName)
 
+   print ''
    print '--Ignored--'
    for fileStatus in sorted(ignoredFiles):
       print '[{}],[{}]'.format(fileStatus.why, fileStatus.fileName)
