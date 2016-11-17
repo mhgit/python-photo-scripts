@@ -4,6 +4,9 @@
 # Sends the files to a default location that can be overridden.
 # Todo, would be handy to be able to create an optional log for checking before the
 # archive is sent to glacier.  Just use --log=DEBUG then log at info level.
+# The folder will be based on the folder being archived.
+# i.e. if you archive .../pictures/Archive_PS1/store0035/
+# the final archive will be /share/backup-jobs/aws-glacier/backup_store0035/store0035.tar.bz2
 
 import os
 import shutil
@@ -13,7 +16,7 @@ from sets import Set
 IGNORE_PATTERNS = ('*.DS_Store','*.@__thumb')
 
 dirToDefault = "/share/backup-jobs/aws-glacier"
-dirToTarFilePrefix = "backup_"
+dirToPrefix = "backup_"
 
 ignoredFiles = set()
 includedFiles = set()
@@ -101,7 +104,7 @@ def listtree(src, ignore=None):
 
    return;
 
-#
+# Print files which will be added / not added to archive
 def printList(includedFiles, ignoredFiles):
    print 'Ignore Names: [{}]'.format(', '.join(IGNORE_PATTERNS))
 
@@ -115,6 +118,7 @@ def printList(includedFiles, ignoredFiles):
       print '[{}],[{}]'.format(fileStatus.why, fileStatus.fileName)
    return;
 
+# Print a sum totals.
 def printSummary(includedFiles, ignoredFiles):
    print ''
    print '--Summary--'
@@ -122,6 +126,33 @@ def printSummary(includedFiles, ignoredFiles):
    print '{} ignored files.'.format(len(ignoredFiles))
    return;
 
+# Create a new location for the file based on its name
+def createToDir(dirFrom, dirTo, dirToPrefix, toDirPathEnd):
+
+   createDir = os.path.join(dirTo, dirToPrefix + toDirPathEnd)
+
+   if not os.path.exists(createDir):
+      os.mkdir(createDir, 0755)
+
+   return createDir;
+
+# Build the compressed archive
+def createArchive(dirFrom, dirTo, dirToPrefix, includedFiles, flags):
+
+   toDirPathEnd = os.path.basename(os.path.normpath(dirFrom))
+   archiveToDir = createToDir(dirFrom, dirTo, dirToPrefix, toDirPathEnd)
+   tarPath = archiveToDir + '/' + toDirPathEnd + '.tar.bz2'
+
+   print 'Archive to: [{}]'.format(tarPath)
+
+   #tar = tarfile.open(archiveToDir +
+
+
+
+   return;
+
+#
+# Create a clean archive.  Process incoming args.
 def main(argv):
    flags = Flags()
    flags.verbose = False
@@ -170,8 +201,8 @@ def main(argv):
       sys.exit()
 
 
-   # todo this is where the tar will be made.
-   # implement verbose setting as you go i.e print progress
+   createArchive(dirFrom, dirTo, dirToPrefix, includedFiles, flags)
+
    sys.exit()
 
 if __name__ == "__main__":
