@@ -90,7 +90,7 @@ def listtree(src, ignore=None):
          elif os.path.islink(srcname):
             addSkipFile(ignoredFiles, src, name, 'skip symbolic link')
          else:
-            includedFiles.add(srcname)
+            includedFiles.add(os.path.abspath(srcname))
 
       # What about devices, sockets etc.?
       except (IOError, os.error) as why:
@@ -151,9 +151,8 @@ def createArchive(dirFrom, dirTo, dirToPrefix, includedFiles, flags):
    with tarfile.open(tarPath, "w:bz2") as tar:
       for name in includedFiles:
          if (flags.verbose == True):
-            print '+ [{}]'.format(name)
+            print '+ {}'.format(name)
             tar.add(name)
-   tar.close
 
 
 
