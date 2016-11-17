@@ -1,8 +1,9 @@
 #!/usr/local/bin/python
 
-# move files from one directory to another
-# if files alrady exist there, they will be overwritten
-# retains original file date/time
+# Create a clean archive of a photo store.
+# Sends the files to a default location that can be overridden.
+# Todo, would be handy to be able to create an optional log for checking before the
+# archive is sent to glacier.  Just use --log=DEBUG then log at info level.
 
 import os
 import shutil
@@ -63,9 +64,10 @@ def addSkipFile(ignoredFiles, src, name, why):
 
    return;
 
-# list files
+# Find files
 def listtree(src, ignore=None):
    names = os.listdir(src)
+
    if ignore is not None:
       ignoredNames = ignore(src, names)
    else:
@@ -79,23 +81,23 @@ def listtree(src, ignore=None):
 
       srcname = os.path.join(src, name)
       try:
-         if os.path.isdir(srcname):
+         if os.path.isdir(srcname) and not os.path.islink(srcname):
             listtree(srcname, ignore)
          elif os.path.islink(srcname):
             addSkipFile(ignoredFiles, src, name, 'skip symbolic link')
          else:
             includedFiles.add(srcname)
 
-      # XXX What about devices, sockets etc.?
+      # What about devices, sockets etc.?
       except (IOError, os.error) as why:
          errors.append((srcname, str(why)))
       # catch the Error from the recursive listtree so that we can
       # continue with other files
       except EnvironmentError as err:
          errors.extend(err.args[0])
+
    if errors:
       raise Exception(errors)
-
 
    return;
 
@@ -112,6 +114,8 @@ def printList(includedFiles, ignoredFiles):
    return;
 
 def printSummary(includedFiles, ignoredFiles):
+   print ''
+   print '--Summary--'
    print '{} included files.'.format(len(includedFiles))
    print '{} ignored files.'.format(len(ignoredFiles))
    return;
