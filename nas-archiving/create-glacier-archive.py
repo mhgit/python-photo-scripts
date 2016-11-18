@@ -10,7 +10,6 @@ import os
 import shutil
 import sys, getopt
 import tarfile
-from sets import Set
 
 IGNORE_PATTERNS = ('*.DS_Store','*.@__thumb')
 
