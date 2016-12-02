@@ -15,93 +15,97 @@
 # http://stackoverflow.com/questions/3431825/generating-an-md5-checksum-of-a-file
 
 
+import getopt
 import os
 import shutil
-import sys, getopt
+import sys
 import tarfile
 
 IGNORE_PATTERNS = ('*.DS_Store', '*.@__thumb')
 
-dirToDefault = "/share/backup-jobs/aws-glacier"
-dirToPrefix = "backup_"
+_dir_to_default = "/share/backup-jobs/aws-glacier"
+_dir_to_prefix = "backup_"
 
-ignoredFiles = set()
-includedFiles = set()
+_ignored_files = set()
+_included_files = set()
 
 
 class FileStatus:
-    pass
+    def __init__(self):
+        pass
 
 
 class Flags:
-    pass
+    def __init__(self):
+        pass
 
 
-def printHelp():
+def print_help():
     print ''
-    print sys.argv[0] + ' [-h] [l | list] [s | summary] [v | verbose] [i | input-dir] [o | output-dir]'
+    print sys.argv[
+              0] + ' [-h] [-l | list] [-c | check-contents] [-s | summary] [-v | verbose]' \
+                   '\n [-i | input-dir] [-o | output-dir]'
     print ''
     print 'Creates a tar cleaned of all files we do not want to send to offline archive.'
     print 'Ignores symbolic links'
-    print 'Ignored names: [{}]'.format(', '.join(IGNORE_PATTERNS))
+    print 'Ignored names: [{}]'.format(', '.join(IGNORE_PATTERNS)).join('\n')
 
-    print ''
-    print 'Typical use cases:'
-    print ''
+    print 'Typical use cases:\n'
 
     print 'Report a dry run:'
-    print sys.argv[0] + ' -d <input directory> -l'
-    print ''
+    print sys.argv[0] + ' -d <input directory> -l\n'
 
     print 'Report summary:'
-    print sys.argv[0] + ' -i <input directory> -s'
-    print ''
+    print ''.join(sys.argv[0]) + (' -i <input directory> -s\n')
 
     print 'Creating archives:'
-    print 'With no output the default location is used: [{}]'.format(dirToDefault)
+    print 'With no output the default location is used: [{}]'.format(_dir_to_default)
     print sys.argv[0] + ' -i <input directory>'
-    print sys.argv[0] + ' -i <input directory> -o <output directory [{}]>'
-    print 'Verbose and summary'
-    print sys.argv[0] + ' -i <input directory> -o <output directory [{}]> -vs'
+    print sys.argv[0] + ' -i <input directory> -o <output directory>\n'
 
-    print ''
+    print 'Verbose and summary'
+    print sys.argv[0] + ' -i <input directory> -o <output directory> -vs\n'
+
+    print 'Checking archives and validating the contents:'
+
+    print sys.argv[0] + ' -i <input directory> -o <output directory> -c\n'
 
 
 #
 # Collect skipped file
-def addSkipFile(ignoredFiles, src, name, why):
-    fileStatus = FileStatus()
-    fileStatus.why = why
-    fileStatus.fileName = os.path.join(src, name)
-    ignoredFiles.add(fileStatus)
+def add_skip_file(ignored_files, src, name, why):
+    file_status = FileStatus()
+    file_status.why = why
+    file_status.fileName = os.path.join(src, name)
+    ignored_files.add(file_status)
 
-    return;
+    return
 
 
 #
 # Find files
-def listtree(src, ignore=None):
+def list_tree(src, ignore=None):
     names = os.listdir(src)
 
     if ignore is not None:
-        ignoredNames = ignore(src, names)
+        ignored_names = ignore(src, names)
     else:
-        ignoredNames = set()
+        ignored_names = set()
 
     errors = []
     for name in names:
-        if name in ignoredNames:
-            addSkipFile(ignoredFiles, src, name, 'skip pattern match')
+        if name in ignored_names:
+            add_skip_file(_ignored_files, src, name, 'skip pattern match')
             continue
 
         srcname = os.path.join(src, name)
         try:
             if os.path.isdir(srcname) and not os.path.islink(srcname):
-                listtree(srcname, ignore)
+                list_tree(srcname, ignore)
             elif os.path.islink(srcname):
-                addSkipFile(ignoredFiles, src, name, 'skip symbolic link')
+                add_skip_file(_ignored_files, src, name, 'skip symbolic link')
             else:
-                includedFiles.add(srcname)
+                _included_files.add(srcname)
 
         # What about devices, sockets etc.?
         except (IOError, os.error) as why:
@@ -114,68 +118,68 @@ def listtree(src, ignore=None):
     if errors:
         raise Exception(errors)
 
-    return;
+    return
 
 
 #
 # Print files which will be added / not added to archive
-def printList(includedFiles, ignoredFiles):
+def print_list(included_files, ignored_files):
     print 'Ignore Names: [{}]'.format(', '.join(IGNORE_PATTERNS))
 
     print '--Include--'
-    for fileName in sorted(includedFiles):
-        print '[{}]'.format(fileName)
+    for file_name in sorted(included_files):
+        print '[{}]'.format(file_name)
 
     print ''
     print '--Ignored--'
-    for fileStatus in sorted(ignoredFiles):
-        print '[{}],[{}]'.format(fileStatus.why, fileStatus.fileName)
-    return;
+    for file_status in sorted(ignored_files):
+        print '[{}],[{}]'.format(file_status.why, file_status.fileName)
+    return
 
 
 #
 # Print a sum totals.
-def printSummary(includedFiles, ignoredFiles):
+def print_summary(included_files, ignored_files):
     print ''
     print '--Summary--'
-    print '{} included files.'.format(len(includedFiles))
-    print '{} ignored files.'.format(len(ignoredFiles))
-    return;
+    print '{} included files.'.format(len(included_files))
+    print '{} ignored files.'.format(len(ignored_files))
+    return
 
 
 #
 # Create a new location for the file based on its name
-def createToDir(dirFrom, dirTo, dirToPrefix, toDirPathEnd):
-    createDir = os.path.join(dirTo, dirToPrefix + toDirPathEnd)
+def create_to_dir(dir_to, dir_to_prefix, to_dir_path_end):
+    create_dir = os.path.join(dir_to, dir_to_prefix + to_dir_path_end)
 
-    if not os.path.exists(createDir):
-        os.mkdir(createDir, 0755)
+    if not os.path.exists(create_dir):
+        os.mkdir(create_dir, 0755)
 
-    return createDir;
+    return create_dir
 
 
 #
 # Build the compressed archive
-def createArchive(dirFrom, dirTo, dirToPrefix, includedFiles, flags):
-    toDirPathEnd = os.path.basename(os.path.normpath(dirFrom))
-    archiveToDir = createToDir(dirFrom, dirTo, dirToPrefix, toDirPathEnd)
-    tarPath = archiveToDir + '/' + toDirPathEnd + '.tar.bz2'
+def create_archive(dir_from, dir_to, dir_to_prefix, included_files, flags):
+    to_dir_path_end = os.path.basename(os.path.normpath(dir_from))
+    archive_to_dir = create_to_dir(dir_to, dir_to_prefix, to_dir_path_end)
+    tar_path = archive_to_dir + '/' + to_dir_path_end + '.tar.bz2'
 
-    if (flags.verbose == True):
-        print 'Archive to: [{}]'.format(tarPath)
+    if flags.verbose:
+        print 'Archive to: [{}]'.format(tar_path)
 
-    i = len(includedFiles)
+    i = len(included_files)
 
-    if (os.path.isfile(tarPath)):
-        raise Exception("Tar exists! Will not overwrite! " + tarPath)
+    if os.path.isfile(tar_path):
+        raise Exception("Tar exists! Will not overwrite! " + tar_path)
 
-    with tarfile.open(tarPath, "w:bz2") as tar:
-        for name in includedFiles:
-            if (flags.verbose == True):
+    with tarfile.open(tar_path, "w:bz2") as tar:
+        for name in included_files:
+            if flags.verbose:
                 print 'a[{}] {}'.format(i, name)
             tar.add(name, arcname=os.path.abspath(name))
             i -= 1
-    return;
+    return
 
 
 #
@@ -186,30 +190,31 @@ def main(argv):
     flags.summary = False
     flags.list = False
 
-    dirFrom = ''
-    dirTo = dirToDefault
+    dir_from = ''
+    dir_to = _dir_to_default
 
     if (argv is None) or (len(argv) == 0):
-        printHelp()
+        print_help()
         sys.exit(2)
 
     try:
-        opts, args = getopt.getopt(argv, "hi:lo:sv", ["input-dir=", "list", "output-dir=", "summary", "verbose"])
+        opts, args = getopt.getopt(argv, "hi:lo:svc",
+                                   ["input-dir=", "list", "output-dir=", "summary", "verbose", "check-contents"])
     except getopt.GetoptError:
-        printHelp()
+        print_help()
         sys.exit(2)
 
     for opt, arg in opts:
         if opt == "-h":
-            printHelp()
+            print_help()
             sys.exit()
 
         if opt in ("-o", "--output-dir"):
-            dirTo = arg
+            dir_to = arg
 
         if opt in ("-i", "--input-dir"):
-            dirFrom = arg
-            listtree(src=dirFrom, ignore=shutil.ignore_patterns(*IGNORE_PATTERNS))
+            dir_from = arg
+            list_tree(src=dir_from, ignore=shutil.ignore_patterns(*IGNORE_PATTERNS))
 
         if opt in ("-s", "--summary"):
             flags.summary = True
@@ -220,17 +225,22 @@ def main(argv):
         if opt in ("-l", "--list"):
             flags.list = True
 
-    if (flags.list == True):
-        printList(includedFiles, ignoredFiles)
+        if opt in ("-c", "--check-contents"):
+            flags.check_contents = True
+            print 'NOT IMPLEMENTED'
+            sys.exit(3)
 
-    if (flags.summary == True):
-        printSummary(includedFiles, ignoredFiles)
+    if flags.list:
+        print_list(_included_files, _ignored_files)
+
+    if flags.summary:
+        print_summary(_included_files, _ignored_files)
 
     # Do no further processing if we are only asked to list, this is a dry run.
-    if (flags.list == True):
+    if flags.list:
         sys.exit()
 
-    createArchive(dirFrom, dirTo, dirToPrefix, includedFiles, flags)
+    create_archive(dir_from, dir_to, _dir_to_prefix, _included_files, flags)
 
     sys.exit()
 
