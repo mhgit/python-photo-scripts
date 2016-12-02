@@ -1,10 +1,19 @@
 # Create a clean archive of a photo store.
 # Sends the files to a default location that can be overridden.
-# Todo, would be handy to be able to create an optional log for checking before the
-# archive is sent to glacier.  Just use --log=DEBUG then log at info level.
+#
 # The folder will be based on the folder being archived.
 # i.e. if you archive .../pictures/Archive_PS1/store0035/
 # the final archive will be /share/backup-jobs/aws-glacier/backup_store0035/store0035.tar.bz2
+#
+# todo list
+# Validate the file entries.
+# Validate the files against the originals.
+# Create md5 file for tar
+# Flag to compare md5 against original file.
+# http://stackoverflow.com/questions/2018512/reading-tar-file-contents-without-untarring-it-in-python-script
+# http://stackoverflow.com/questions/254350/in-python-is-there-a-concise-way-of-comparing-whether-the-contents-of-two-text
+# http://stackoverflow.com/questions/3431825/generating-an-md5-checksum-of-a-file
+
 
 import os
 import shutil
