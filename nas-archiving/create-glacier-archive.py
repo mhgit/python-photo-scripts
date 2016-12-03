@@ -30,20 +30,23 @@ _ignored_files = set()
 _included_files = set()
 
 
-class FileStatus:
+class FileStatus(object):
     def __init__(self):
         pass
 
 
-class Flags:
-    def __init__(self):
-        pass
+class Flags(object):
+    def __init__(self, verbose=False, summary=False, list_only=False, check_contents=False):
+        self.verbose = verbose
+        self.summary = summary
+        self.list_only = list_only
+        self.check_contents = check_contents
 
 
 def print_help():
     print ''
     print sys.argv[
-              0] + ' [-h] [-l | list] [-c | check-contents] [-s | summary] [-v | verbose]' \
+              0] + ' [-h] [-l | list-only] [-c | check-contents] [-s | summary] [-v | verbose]' \
                    '\n [-i | input-dir] [-o | output-dir]'
     print ''
     print 'Creates a tar cleaned of all files we do not want to send to offline archive.'
@@ -124,7 +127,8 @@ def list_tree(src, ignore=None):
 #
 # Print files which will be added / not added to archive
 def print_list(included_files, ignored_files):
-    print 'Ignore Names: [{}]'.format(', '.join(IGNORE_PATTERNS))
+    print '\n** List files only! **'
+    print '\nIgnore Names: [{}]'.format(', '.join(IGNORE_PATTERNS))
 
     print '--Include--'
     for file_name in sorted(included_files):
@@ -143,7 +147,7 @@ def print_summary(included_files, ignored_files):
     print ''
     print '--Summary--'
     print '{} included files.'.format(len(included_files))
-    print '{} ignored files.'.format(len(ignored_files))
+    print '{} ignored files.\n'.format(len(ignored_files))
     return
 
 
@@ -160,14 +164,7 @@ def create_to_dir(dir_to, dir_to_prefix, to_dir_path_end):
 
 #
 # Build the compressed archive
-def create_archive(dir_from, dir_to, dir_to_prefix, included_files, flags):
-    to_dir_path_end = os.path.basename(os.path.normpath(dir_from))
-    archive_to_dir = create_to_dir(dir_to, dir_to_prefix, to_dir_path_end)
-    tar_filename = archive_to_dir + '/' + to_dir_path_end + '.tar.bz2'
-
-    if flags.verbose:
-        print 'Archive to: [{}]'.format(tar_filename)
-
+def create_archive(tar_filename, included_files, flags):
     i = len(included_files)
 
     if os.path.isfile(tar_filename):
@@ -180,6 +177,16 @@ def create_archive(dir_from, dir_to, dir_to_prefix, included_files, flags):
             tar.add(name, arcname=os.path.abspath(name))
             i -= 1
 
+    return
+
+
+#
+# Create the folder where the tar will be written and return the name.
+def build_tar_location(dir_from, dir_to):
+    to_dir_path_end = os.path.basename(os.path.normpath(dir_from))
+    archive_to_dir = create_to_dir(dir_to, _dir_to_prefix, to_dir_path_end)
+    tar_filename = archive_to_dir + '/' + to_dir_path_end + '.tar.bz2'
+
     return tar_filename
 
 
@@ -188,7 +195,7 @@ def check_archive_contents(tar_filename):
 
     print '\nChecking tar: [{}]'.format(tar_filename)
 
-#todo use getmembers() and iterate over the files.  Compare the agains the real file.
+    # todo use getmembers() and iterate over the files.  Compare the agains the real file.
 
     with tarfile.open(tar_filename, "r") as tar:
         for member in tar.getmembers():
@@ -202,7 +209,7 @@ def check_archive_contents(tar_filename):
             else:
                 print 'Original file missing: [{}]'.format(member_name)
 
-            # figure out how to compare content with original file.
+                # figure out how to compare content with original file.
 
     return
 
@@ -211,9 +218,6 @@ def check_archive_contents(tar_filename):
 # Create a clean archive.  Process incoming args.
 def main(argv):
     flags = Flags()
-    flags.verbose = False
-    flags.summary = False
-    flags.list = False
 
     dir_from = ''
     dir_to = _dir_to_default
@@ -224,7 +228,7 @@ def main(argv):
 
     try:
         opts, args = getopt.getopt(argv, "chi:lo:sv",
-                                   ["input-dir=", "list", "output-dir=", "summary", "verbose", "check-contents"])
+                                   ["input-dir=", "list-only", "output-dir=", "summary", "verbose", "check-contents"])
     except getopt.GetoptError:
         print_help()
         sys.exit(2)
@@ -247,23 +251,25 @@ def main(argv):
         if opt in ("-v", "--verbose"):
             flags.verbose = True
 
-        if opt in ("-l", "--list"):
-            flags.list = True
+        if opt in ("-l", "--list-only"):
+            flags.list_only = True
 
         if opt in ("-c", "--check-contents"):
             flags.check_contents = True
 
-    if flags.list:
+    if flags.list_only:
         print_list(_included_files, _ignored_files)
 
     if flags.summary:
         print_summary(_included_files, _ignored_files)
 
-    # Do no further processing if we are only asked to list, this is a dry run.
-    if flags.list:
-        sys.exit()
+    tar_filename = build_tar_location(dir_from, dir_to)
 
-    tar_filename = create_archive(dir_from, dir_to, _dir_to_prefix, _included_files, flags)
+    if flags.verbose:
+        print 'Archive to: [{}]\n'.format(tar_filename)
+
+    if not flags.list_only:
+        create_archive(tar_filename, _included_files, flags)
 
     if flags.check_contents:
         check_archive_contents(tar_filename)
