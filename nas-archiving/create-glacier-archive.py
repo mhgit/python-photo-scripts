@@ -98,7 +98,7 @@ def add_skip_file(ignored_files, src, name, why):
 
 
 def list_tree(src, included_files, skipped_files, ignore=None):
-    # type: (str, set, set, types.FunctionType) -> object
+    # type: (str, set, set, types.FunctionType) -> None
     """
     Walk the tree and find all files.  Populates ignored_files and included_files
     :param src: Route folder name.
