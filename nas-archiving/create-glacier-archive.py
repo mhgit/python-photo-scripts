@@ -163,22 +163,47 @@ def create_to_dir(dir_to, dir_to_prefix, to_dir_path_end):
 def create_archive(dir_from, dir_to, dir_to_prefix, included_files, flags):
     to_dir_path_end = os.path.basename(os.path.normpath(dir_from))
     archive_to_dir = create_to_dir(dir_to, dir_to_prefix, to_dir_path_end)
-    tar_path = archive_to_dir + '/' + to_dir_path_end + '.tar.bz2'
+    tar_filename = archive_to_dir + '/' + to_dir_path_end + '.tar.bz2'
 
     if flags.verbose:
-        print 'Archive to: [{}]'.format(tar_path)
+        print 'Archive to: [{}]'.format(tar_filename)
 
     i = len(included_files)
 
-    if os.path.isfile(tar_path):
-        raise Exception("Tar exists! Will not overwrite! " + tar_path)
+    if os.path.isfile(tar_filename):
+        raise Exception("Tar exists! Will not overwrite! " + tar_filename)
 
-    with tarfile.open(tar_path, "w:bz2") as tar:
+    with tarfile.open(tar_filename, "w:bz2") as tar:
         for name in included_files:
             if flags.verbose:
                 print 'a[{}] {}'.format(i, name)
             tar.add(name, arcname=os.path.abspath(name))
             i -= 1
+
+    return tar_filename
+
+
+def check_archive_contents(tar_filename):
+    tar_member_names = set()
+
+    print '\nChecking tar: [{}]'.format(tar_filename)
+
+#todo use getmembers() and iterate over the files.  Compare the agains the real file.
+
+    with tarfile.open(tar_filename, "r") as tar:
+        for member in tar.getmembers():
+            f = tar.extractfile(member)
+            content = f.read()
+
+            member_name = os.path.join('/', member.name)
+
+            if os.path.isfile(member_name):
+                print 'Original file found: [{}]'.format(member_name)
+            else:
+                print 'Original file missing: [{}]'.format(member_name)
+
+            # figure out how to compare content with original file.
+
     return
 
 
@@ -198,7 +223,7 @@ def main(argv):
         sys.exit(2)
 
     try:
-        opts, args = getopt.getopt(argv, "hi:lo:svc",
+        opts, args = getopt.getopt(argv, "chi:lo:sv",
                                    ["input-dir=", "list", "output-dir=", "summary", "verbose", "check-contents"])
     except getopt.GetoptError:
         print_help()
@@ -227,8 +252,6 @@ def main(argv):
 
         if opt in ("-c", "--check-contents"):
             flags.check_contents = True
-            print 'NOT IMPLEMENTED'
-            sys.exit(3)
 
     if flags.list:
         print_list(_included_files, _ignored_files)
@@ -240,7 +263,10 @@ def main(argv):
     if flags.list:
         sys.exit()
 
-    create_archive(dir_from, dir_to, _dir_to_prefix, _included_files, flags)
+    tar_filename = create_archive(dir_from, dir_to, _dir_to_prefix, _included_files, flags)
+
+    if flags.check_contents:
+        check_archive_contents(tar_filename)
 
     sys.exit()
 
