@@ -63,7 +63,7 @@ def print_help():
     print sys.argv[0] + ' -d <input directory> -l\n'
 
     print 'Report summary:'
-    print sys.argv[0] + (' -i <input directory> -s\n')
+    print sys.argv[0] + ' -i <input directory> -s\n'
 
     print 'Creating archives:'
     print 'With no output the default location is used: [{}]'.format(_dir_to_default)
