@@ -125,7 +125,7 @@ def list_tree(src, ignore=None):
 
 
 #
-# Print files which will be added / not added to archive
+# Print files which will be [added, not added] to archive
 def print_list(included_files, ignored_files):
     print '\n** List files only! **'
     print '\nIgnore Names: [{}]'.format(', '.join(IGNORE_PATTERNS))
@@ -168,7 +168,7 @@ def create_archive(tar_filename, included_files, flags):
     i = len(included_files)
 
     if os.path.isfile(tar_filename):
-        raise Exception("Tar exists! Will not overwrite! " + tar_filename)
+        raise Exception("Tar exists! Will not overwrite, user must remove. " + tar_filename)
 
     with tarfile.open(tar_filename, "w:bz2") as tar:
         for name in included_files:
@@ -236,7 +236,7 @@ def main(argv):
     for opt, arg in opts:
         if opt == "-h":
             print_help()
-            sys.exit()
+            sys.exit(0)
 
         if opt in ("-o", "--output-dir"):
             dir_to = arg
@@ -244,6 +244,10 @@ def main(argv):
         if opt in ("-i", "--input-dir"):
             dir_from = arg
             list_tree(src=dir_from, ignore=shutil.ignore_patterns(*IGNORE_PATTERNS))
+
+            if len(_included_files) == 0:
+                print('\n** No files found to archive! **')
+                sys.exit(1)
 
         if opt in ("-s", "--summary"):
             flags.summary = True
@@ -274,7 +278,7 @@ def main(argv):
     if flags.check_contents:
         check_archive_contents(tar_filename)
 
-    sys.exit()
+    sys.exit(0)
 
 
 if __name__ == "__main__":
