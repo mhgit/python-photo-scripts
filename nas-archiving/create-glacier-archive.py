@@ -12,6 +12,7 @@
 
 
 import getopt
+import hashlib
 import os
 import shutil
 import sys
@@ -33,29 +34,33 @@ class FileStatus(object):
 
 
 class Flags(object):
-    def __init__(self, verbose=False, summary=False, list_only=False, check_contents=False):
+    def __init__(self, verbose=False, summary=False, list_only=False, check_contents=False, chk_md5=False):
         """
         Collect args from the command line.
         :param verbose: Print progress and other notes.
         :param summary: Print summary information.
         :param list_only: Only list intentions.
         :param check_contents: Check the contents of an existing archive against the filesystem.
+        :param chk_md5: Check an md5 file
         """
         self.verbose = verbose
         self.summary = summary
         self.list_only = list_only
         self.check_contents = check_contents
+        self.chk_md5 = chk_md5
 
 
 def print_help():
     print ''
     print sys.argv[
               0] + ' [-h] [-l | list-only] [-c | check-contents] [-s | summary] [-v | verbose]' \
-                   '\n [-i | input-dir] [-o | output-dir]'
+                   '\n [-i | input-dir] [-o | output-dir]' \
+                   '\n [check-md5]'
     print ''
     print 'Creates a tar cleaned of all files we do not want to send to offline archive.'
     print 'Ignores symbolic links'
     print 'Ignored patterns: [{}]'.format(IGNORE_PATTERNS)
+    print 'This also creates an md5 file for checking the hash of the tarfile.\n'
 
     print '\nTypical use cases:\n'
 
@@ -73,9 +78,18 @@ def print_help():
     print 'Verbose and summary'
     print sys.argv[0] + ' -i <input directory> -o <output directory> -vs\n'
 
-    print 'Checking archives and validating the contents:'
-
+    print 'Checking archives and validating the contents:\n'
+    print 'Its possible to validate the files for correctness against the originals and check none are missing in ' \
+          'either direction.\n'
+    print 'This also checks the MD5 file against a hash of the tar.\n'
     print sys.argv[0] + ' -i <input directory> -o <output directory> -c\n'
+
+    print '\nThe --check-md5 flag will read in the buddy md5 file and check it against a hash of the tar.\n'
+    print 'This will just do the check and exit fast.\n'
+
+    print '\nMost useful combination on creation is\n' + sys.argv[0] + '-vsc -i <input directory> -o <output ' \
+                                                                       'directory> '
+
     return
 
 
@@ -197,7 +211,7 @@ def create_to_dir(dir_to, dir_to_prefix, dir_to_suffix):
 def create_archive(tar_filename, included_files, flags):
     # type: (str, set, Flags) -> None
     """
-
+    Create the archive and an associate md5 file.
     :param tar_filename:
     :param included_files:
     :param flags:
@@ -213,6 +227,8 @@ def create_archive(tar_filename, included_files, flags):
                 print 'a [{}] {}'.format(i, name)
             tar.add(name, arcname=os.path.abspath(name))
             i -= 1
+
+    write_md5(tar_filename, flags)
 
     return
 
@@ -249,7 +265,30 @@ def check_archive(tar_filename, included_files):
     if not match_fs_with_members(tar_filename, included_files):
         good_archive = False
 
+    if not check_md5(tar_filename):
+        print "\nERROR: MD5 Not Matched!"
+        good_archive = False
+    else:
+        print "\nMD5 Matched."
+
     return good_archive
+
+
+def check_md5(tar_filename):
+    # type: (str) -> bool
+    """
+    Generate an md5 off the tar and check it against the one on the fs.
+    :param tar_filename: Archive to generate from.
+    """
+    md5_filename = tar_filename + '.md5'
+    if os.path.isfile(md5_filename):
+        md5_hash = generate_md5(tar_filename)
+        with open(name=md5_filename, mode='r') as f:
+            stored_md5_hash = f.read()
+            if not md5_hash == stored_md5_hash:
+                return False
+            else:
+                return True
 
 
 def match_fs_with_members(tar_filename, included_files):
@@ -305,6 +344,37 @@ def match_members_with_fs(tar_filename):
     return good_archive
 
 
+def generate_md5(filename):
+    # type: (str) -> str
+    """
+    Read the archive and produce an md5 string.
+    :param filename: Archive filename to read.
+    :return: md5
+    """
+    hash_md5 = hashlib.md5()
+    with open(filename, "rb") as f:
+        for chunk in iter(lambda: f.read(4096), b""):
+            hash_md5.update(chunk)
+    return hash_md5.hexdigest()
+
+
+def write_md5(tar_filename, flags):
+    # type: (str, Flags) -> None
+    """
+    Write out an md5 string to file
+    :param tar_filename:
+    """
+    md_filename = tar_filename + '.md5'
+    if flags.verbose:
+        print '\nWriting MD5 file: [{}]'.format(md_filename)
+
+        md5_hex = generate_md5(tar_filename)
+        with open(name=md_filename, mode='w') as f:
+            f.write(md5_hex)
+
+    return
+
+
 def main(argv):
     # type: (list) -> None
     """
@@ -325,7 +395,8 @@ def main(argv):
 
     try:
         opts, args = getopt.getopt(argv, "chi:lo:sv",
-                                   ["input-dir=", "list-only", "output-dir=", "summary", "verbose", "check-contents"])
+                                   ["check-contents", "check-md5", "input-dir=", "list-only"
+                                       , "output-dir=", "summary", "verbose", ])
     except getopt.GetoptError:
         print_help()
         sys.exit(2)
@@ -346,8 +417,7 @@ def main(argv):
                       , ignore=shutil.ignore_patterns(*IGNORE_PATTERNS))
 
             if len(included_files) == 0:
-                print('\n** No files found to archive! **')
-                sys.exit(1)
+                sys.exit("* No files found to archive! **")
 
         if opt in ("-s", "--summary"):
             flags.summary = True
@@ -361,6 +431,9 @@ def main(argv):
         if opt in ("-c", "--check-contents"):
             flags.check_contents = True
 
+        if opt == "--check-md5":
+            flags.chk_md5 = True
+
     if flags.list_only:
         print_list(included_files, skipped_files)
 
@@ -368,6 +441,13 @@ def main(argv):
         print_summary(included_files, skipped_files)
 
     tar_filename = build_tar_location(dir_from, dir_to)
+
+    if flags.chk_md5:
+        if not check_md5(tar_filename):
+            sys.exit("\nERROR: MD5 Not Matched!")
+        else:
+            print "\nMD5 Matched."
+            sys.exit(0)
 
     if flags.verbose:
         print 'Archive to: [{}]\n'.format(tar_filename)
