@@ -87,8 +87,8 @@ def print_help():
     print '\nThe --check-md5 flag will read in the buddy md5 file and check it against a hash of the tar.\n'
     print 'This will just do the check and exit fast.\n'
 
-    print '\nMost useful combination on creation is\n' + sys.argv[0] + '-vsc -i <input directory> -o <output ' \
-                                                                       'directory> '
+    print 'Most useful combination on creation is\n' + sys.argv[0] + \
+          ' -vsc -i <input directory> -o <output directory>\n\n'
 
     return
 
