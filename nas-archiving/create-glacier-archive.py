@@ -5,11 +5,6 @@
 # i.e. if you archive .../pictures/Archive_PS1/store0035/
 # the final archive will be /share/backup-jobs/aws-glacier/backup_store0035/store0035.tar.bz2
 #
-# todo list
-# Create md5 file for tar
-# Flag to compare md5 against original file.
-# http://stackoverflow.com/questions/3431825/generating-an-md5-checksum-of-a-file
-
 
 import getopt
 import hashlib
@@ -434,15 +429,22 @@ def main(argv):
         if opt == "--check-md5":
             flags.chk_md5 = True
 
+    if not dir_from:
+        print_help()
+        sys.exit("\n ERROR: -i flag is mandatory!")
+
     if flags.list_only:
         print_list(included_files, skipped_files)
 
     if flags.summary:
         print_summary(included_files, skipped_files)
 
+    if flags.list_only:
+        sys.exit(0)
+
     tar_filename = build_tar_location(dir_from, dir_to)
 
-    if flags.chk_md5:
+    if (not flags.check_contents) and flags.chk_md5:
         if not check_md5(tar_filename):
             sys.exit("\nERROR: MD5 Not Matched!")
         else:
