@@ -14,7 +14,7 @@ import sys
 import tarfile
 import types
 
-IGNORE_PATTERNS = ('*.DS_Store', '*.@__thumb', '*.@Transcode')
+IGNORE_PATTERNS = ('*.DS_Store', '*.@__thumb', '*@Transcode')
 
 _dir_to_default = "/share/backup-jobs/aws-glacier"
 _dir_to_prefix = "backup_"
