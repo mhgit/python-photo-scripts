@@ -1,4 +1,4 @@
-Python Scripts
+Nas Photo Archiving Scripts
 ==============
 
 nas-archiving
