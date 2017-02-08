@@ -22,11 +22,12 @@ folder for creating the archive into.
 In addition the script has facilities for checking and validating the archive and buddy md5 file.
 
 **Details**
+
 Creates a tar cleaned of all files we do not want to send to offline archive.
 
 Ignores symbolic links
 
-Ignored patterns: [('*.DS_Store', '*.@__thumb', '*@Transcode')]
+Ignored patterns: \[('*.DS_Store', '*.@__thumb', '*@Transcode')]
 
 Flags: 
 
