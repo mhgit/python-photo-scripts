@@ -46,44 +46,42 @@ class Flags(object):
 
 
 def print_help():
-    print ''
-    print sys.argv[
+    print('')
+    print(sys.argv[
               0] + ' [-h] [-l | list-only] [-c | check-contents] [-s | summary] [-v | verbose]' \
                    '\n [-i | input-dir] [-o | output-dir]' \
-                   '\n [check-md5]'
-    print ''
-    print 'Creates a tar cleaned of all files we do not want to send to offline archive.'
-    print 'Ignores symbolic links'
-    print 'Ignored patterns: [{}]'.format(IGNORE_PATTERNS)
-    print 'This also creates an md5 file for checking the hash of the tarfile.\n'
+                   '\n [check-md5]')
+    print('')
+    print('Creates a tar cleaned of all files we do not want to send to offline archive.')
+    print('Ignores symbolic links')
+    print('Ignored patterns: [{}]'.format(IGNORE_PATTERNS))
+    print('This also creates an md5 file for checking the hash of the tarfile.\n')
 
-    print '\nTypical use cases:\n'
+    print('\nTypical use cases:\n')
 
-    print 'Report a dry run:'
-    print sys.argv[0] + ' -d <input directory> -l\n'
+    print('Report a dry run:')
+    print(sys.argv[0] + ' -d <input directory> -l\n')
 
-    print 'Report summary:'
-    print sys.argv[0] + ' -i <input directory> -s\n'
+    print('Report summary:')
+    print(sys.argv[0] + ' -i <input directory> -s\n')
 
-    print 'Creating archives:'
-    print 'With no output the default location is used: [{}]'.format(_dir_to_default)
-    print sys.argv[0] + ' -i <input directory>'
-    print sys.argv[0] + ' -i <input directory> -o <output directory>\n'
+    print('Creating archives:')
+    print('With no output the default location is used: [{}]'.format(_dir_to_default))
+    print(sys.argv[0] + ' -i <input directory>')
+    print(sys.argv[0] + ' -i <input directory> -o <output directory>\n')
 
-    print 'Verbose and summary'
-    print sys.argv[0] + ' -i <input directory> -o <output directory> -vs\n'
+    print('Verbose and summary')
+    print(sys.argv[0] + ' -i <input directory> -o <output directory> -vs\n')
 
-    print 'Checking archives and validating the contents:\n'
-    print 'Its possible to validate the files for correctness against the originals and check none are missing in ' \
-          'either direction.\n'
-    print 'This also checks the MD5 file against a hash of the tar.\n'
-    print sys.argv[0] + ' -i <input directory> -o <output directory> -c\n'
+    print('Checking archives and validating the contents:\n')
+    print('Its possible to validate the files for correctness against the originals and check none are missing in either direction.\n')
+    print('This also checks the MD5 file against a hash of the tar.\n')
+    print(sys.argv[0] + ' -i <input directory> -o <output directory> -c\n')
 
-    print '\nThe --check-md5 flag will read in the buddy md5 file and check it against a hash of the tar.\n'
-    print 'This will just do the check and exit fast.\n'
+    print('\nThe --check-md5 flag will read in the buddy md5 file and check it against a hash of the tar.\n')
+    print('This will just do the check and exit fast.\n')
 
-    print 'Most useful combination on creation is\n' + sys.argv[0] + \
-          ' -vsc -i <input directory> -o <output directory>\n\n'
+    print('Most useful combination on creation is\n' + sys.argv[0] + ' -vsc -i <input directory> -o <output directory>\n\n')
 
     return
 
@@ -158,17 +156,17 @@ def print_list(included_files, skipped_files):
     :param included_files:
     :param skipped_files:
     """
-    print '\n** List files only! **'
-    print '\nIgnore Names: [{}]'.format(', '.join(IGNORE_PATTERNS))
+    print('\n** List files only! **')
+    print('\nIgnore Names: [{}]'.format(', '.join(IGNORE_PATTERNS)))
 
-    print '--Include--'
+    print('--Include--')
     for file_name in sorted(included_files):
-        print '[{}]'.format(file_name)
+        print('[{}]'.format(file_name))
 
-    print ''
-    print '--Ignored--'
+    print('')
+    print('--Ignored--')
     for file_status in sorted(skipped_files):
-        print '[{}],[{}]'.format(file_status.why, file_status.fileName)
+        print('[{}],[{}]'.format(file_status.why, file_status.fileName))
     return
 
 
@@ -179,10 +177,10 @@ def print_summary(included_files, skipped_files):
     :param included_files:
     :param skipped_files:
     """
-    print ''
-    print '--Summary--'
-    print '{} included files.'.format(len(included_files))
-    print '{} ignored files.\n'.format(len(skipped_files))
+    print('')
+    print('--Summary--')
+    print('{} included files.'.format(len(included_files)))
+    print('{} ignored files.\n'.format(len(skipped_files)))
     return
 
 
@@ -198,7 +196,7 @@ def create_to_dir(dir_to, dir_to_prefix, dir_to_suffix):
     create_dir = os.path.join(dir_to, dir_to_prefix + dir_to_suffix)
 
     if not os.path.exists(create_dir):
-        os.mkdir(create_dir, 0755)
+        os.mkdir(create_dir, 0o755)
 
     return create_dir
 
@@ -219,7 +217,7 @@ def create_archive(tar_filename, included_files, flags):
     with tarfile.open(tar_filename, "w:bz2") as tar:
         for name in included_files:
             if flags.verbose:
-                print 'a [{}] {}'.format(i, name)
+                print('a [{}] {}'.format(i, name))
             tar.add(name, arcname=os.path.abspath(name))
             i -= 1
 
@@ -252,7 +250,7 @@ def check_archive(tar_filename, included_files):
     :param included_files: The list of files the archive should contain.
     :return True if archive is ok
     """
-    print '\nChecking tar: [{}]'.format(tar_filename)
+    print('\nChecking tar: [{}]'.format(tar_filename))
 
     good_archive = True
     if not match_members_with_fs(tar_filename):
@@ -261,10 +259,10 @@ def check_archive(tar_filename, included_files):
         good_archive = False
 
     if not check_md5(tar_filename):
-        print "\nERROR: MD5 Not Matched!"
+        print("\nERROR: MD5 Not Matched!")
         good_archive = False
     else:
-        print "\nMD5 Matched."
+        print("\nMD5 Matched.")
 
     return good_archive
 
@@ -304,7 +302,7 @@ def match_fs_with_members(tar_filename, included_files):
 
         for fs_name in included_files:
             if not os.path.abspath(fs_name) in member_fs_names:
-                print 'MISSING FROM TAR [{}]'.format(fs_name)
+                print('MISSING FROM TAR [{}]'.format(fs_name))
                 good_archive = False
 
     return good_archive
@@ -328,12 +326,12 @@ def match_members_with_fs(tar_filename):
                 member_as_file = tar.extractfile(member)
                 with open(member_name_fs) as original_file:
                     if member_as_file.read() == original_file.read():
-                        print 'MATCHED {}'.format(member_name_fs)
+                        print('MATCHED {}'.format(member_name_fs))
                     else:
-                        print 'CORRUPT {}'.format(member_name_fs)
+                        print('CORRUPT {}'.format(member_name_fs))
                         good_archive = False
             else:
-                print 'MISSING FROM  FS [{}]'.format(member_name_fs)
+                print('MISSING FROM  FS [{}]'.format(member_name_fs))
                 good_archive = False
 
     return good_archive
@@ -361,7 +359,7 @@ def write_md5(tar_filename, flags):
     """
     md_filename = tar_filename + '.md5'
     if flags.verbose:
-        print '\nWriting MD5 file: [{}]'.format(md_filename)
+        print('\nWriting MD5 file: [{}]'.format(md_filename))
 
         md5_hex = generate_md5(tar_filename)
         with open(name=md_filename, mode='w') as f:
@@ -448,11 +446,11 @@ def main(argv):
         if not check_md5(tar_filename):
             sys.exit("\nERROR: MD5 Not Matched!")
         else:
-            print "\nMD5 Matched."
+            print("\nMD5 Matched.")
             sys.exit(0)
 
     if flags.verbose:
-        print 'Archive to: [{}]\n'.format(tar_filename)
+        print('Archive to: [{}]\n'.format(tar_filename))
 
     if not flags.list_only:
         create_archive(tar_filename, included_files, flags)
@@ -460,7 +458,7 @@ def main(argv):
     if flags.check_contents:
         if not check_archive(tar_filename, included_files):
             sys.exit("** Archive Matching Error: Check report! **")
-        print '\n** Archive Validation Success! **'
+        print('\n** Archive Validation Success! **')
 
     sys.exit(0)
 
