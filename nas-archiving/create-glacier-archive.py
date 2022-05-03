@@ -149,6 +149,31 @@ def list_tree(src, included_files, skipped_files, ignore=None):
     return
 
 
+def create_archive(tar_filename, included_files, flags):
+    # type: (str, set, Flags) -> None
+    """
+    Create the archive and an associate md5 file.
+    :param tar_filename:
+    :param included_files:
+    :param flags:
+    """
+    i = len(included_files)
+
+    if os.path.isfile(tar_filename):
+        sys.exit("Tar exists! Will not overwrite, user must remove. [{}]".format(tar_filename))
+
+    with tarfile.open(tar_filename, "w:bz2") as tar:
+        for name in included_files:
+            if flags.verbose:
+                print('a [{}] {}'.format(i, name))
+            tar.add(name, arcname=os.path.abspath(name))
+            i -= 1
+
+    write_md5(tar_filename, flags)
+
+    return
+
+
 def print_list(included_files, skipped_files):
     # type: (set, set) -> None
     """
@@ -201,31 +226,6 @@ def create_to_dir(dir_to, dir_to_prefix, dir_to_suffix):
     return create_dir
 
 
-def create_archive(tar_filename, included_files, flags):
-    # type: (str, set, Flags) -> None
-    """
-    Create the archive and an associate md5 file.
-    :param tar_filename:
-    :param included_files:
-    :param flags:
-    """
-    i = len(included_files)
-
-    if os.path.isfile(tar_filename):
-        sys.exit("Tar exists! Will not overwrite, user must remove. [{}]".format(tar_filename))
-
-    with tarfile.open(tar_filename, "w:bz2") as tar:
-        for name in included_files:
-            if flags.verbose:
-                print('a [{}] {}'.format(i, name))
-            tar.add(name, arcname=os.path.abspath(name))
-            i -= 1
-
-    write_md5(tar_filename, flags)
-
-    return
-
-
 def build_tar_location(dir_from, dir_to):
     # type: (str, str) -> str
     """
@@ -276,7 +276,7 @@ def check_md5(tar_filename):
     md5_filename = tar_filename + '.md5'
     if os.path.isfile(md5_filename):
         md5_hash = generate_md5(tar_filename)
-        with open(name=md5_filename, mode='r') as f:
+        with open(md5_filename, 'r') as f:
             stored_md5_hash = f.read()
             if not md5_hash == stored_md5_hash:
                 return False
@@ -324,7 +324,7 @@ def match_members_with_fs(tar_filename):
 
             if os.path.isfile(member_name_fs):
                 member_as_file = tar.extractfile(member)
-                with open(member_name_fs) as original_file:
+                with open(member_name_fs, "rb") as original_file:
                     if member_as_file.read() == original_file.read():
                         print('MATCHED {}'.format(member_name_fs))
                     else:
@@ -362,7 +362,7 @@ def write_md5(tar_filename, flags):
         print('\nWriting MD5 file: [{}]'.format(md_filename))
 
         md5_hex = generate_md5(tar_filename)
-        with open(name=md_filename, mode='w') as f:
+        with open(md_filename, 'w') as f:
             f.write(md5_hex)
 
     return
