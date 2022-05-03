@@ -8,8 +8,6 @@ nas-archiving
 
 Scripts to manage the creation of image storage archives.  Originally written to tar and validate the important files before exporting to glacier.  An MD5 can be produced for checking after a restore.
 
-**Some of the scripts just help with the testing.**
-
 **setup.py:** Before building or testing run the script which will create a target
 folder for creating the archive into.
 
