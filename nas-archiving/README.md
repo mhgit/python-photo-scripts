@@ -6,7 +6,7 @@ nas-archiving
 
 **Description**
 
-Scripts to manage the creation of image storage archives.  Originally written to tar and validate the important files before exporting to glacier.  An MD5 can be produced for checking after a restore.
+Scripts to manage the creation of file storage archives.  Builds a tar archive and validate files.  The archive can then be uploaded to glacier or similar, but your responsible what what you do next.  An MD5 is be produced for checking after a restore.
 
 **setup.py:** Before building or testing run the script which will create a target
 folder for creating the archive into.
@@ -45,3 +45,12 @@ Flags:
  
  \[check-md5]           - read in the buddy md5 file and check it against a hash of the tar.
 
+
+**Testing**
+The project contains some small test images and some folders to use during manual testing.  Commands:
+
+# Dry run
+python src/create-glacier-archive.py -vsl -i test-files/image-test-in-area/share/Multimedia-enc/pictures/Archive_PS1/store0035/ -o target/image-test-out-area/backup_store0035
+
+# Create the test archive
+python src/create-glacier-archive.py -vsc -i test-files/image-test-in-area/share/Multimedia-enc/pictures/Archive_PS1/store0035/ -o target/image-test-out-area/backup_store0035

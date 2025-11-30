@@ -13,6 +13,7 @@ import shutil
 import sys
 import tarfile
 import types
+from functools import total_ordering
 
 IGNORE_PATTERNS = ('*.DS_Store', '*.@__thumb', '*@Transcode')
 
@@ -20,12 +21,29 @@ _dir_to_default = "/share/backup-jobs/aws-glacier"
 _dir_to_prefix = "backup_"
 
 
+from functools import total_ordering # Already added above
+
+@total_ordering # 
 class FileStatus(object):
-    def __init__(self):
+    def __init__(self, fileName=None, why=None): 
         """
         Collect the reasons why files are skipped
         """
-        pass
+        self.fileName = fileName 
+        self.why = why          
+
+    def __eq__(self, other): 
+        if not isinstance(other, FileStatus):
+            return NotImplemented
+        return self.fileName == other.fileName
+
+    def __hash__(self): 
+        return hash((self.fileName,))
+
+    def __lt__(self, other): 
+        if not isinstance(other, FileStatus):
+            return NotImplemented
+        return self.fileName < other.fileName
 
 
 class Flags(object):
@@ -85,7 +103,6 @@ def print_help():
 
     return
 
-
 def add_skip_file(ignored_files, src, name, why):
     # type: (set, str, str, str) -> None
 
@@ -96,13 +113,11 @@ def add_skip_file(ignored_files, src, name, why):
     :param name:
     :param why:
     """
-    file_status = FileStatus()
-    file_status.why = why
-    file_status.fileName = os.path.join(src, name)
+    
+    file_status = FileStatus(fileName=os.path.join(src, name), why=why)
     ignored_files.add(file_status)
 
     return
-
 
 def list_tree(src, included_files, skipped_files, ignore=None):
     # type: (str, set, set, types.FunctionType) -> None
