@@ -236,7 +236,7 @@ def create_to_dir(dir_to, dir_to_prefix, dir_to_suffix):
     create_dir = os.path.join(dir_to, dir_to_prefix + dir_to_suffix)
 
     if not os.path.exists(create_dir):
-        os.mkdir(create_dir, 0o755)
+        os.makedirs(create_dir, 0o755)
 
     return create_dir
 
