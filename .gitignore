@@ -1,2 +1,5 @@
 **/target
 /nas-archiving/.python-version
+.direnv/
+.venv/
+.envrc
