@@ -1,6 +1,8 @@
 **/target
-/nas-archiving/.python-version
+**/nas_archiving.egg-info/
 .direnv/
 .venv/
 .envrc
 .vscode
+__pycache__/
+
