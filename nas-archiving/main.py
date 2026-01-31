@@ -1,6 +1,7 @@
 """
 Convenience entry point when run from project root. Delegates to the package CLI.
 """
+
 import sys
 
 from nas_archiving.create_glacier_archive import main

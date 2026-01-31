@@ -14,11 +14,10 @@ import os
 import shutil
 import sys
 import tarfile
-import types
+from collections.abc import Callable
 from functools import total_ordering
-from typing import Callable
 
-IGNORE_PATTERNS = ('*.DS_Store', '*.@__thumb', '*@Transcode')
+IGNORE_PATTERNS = ("*.DS_Store", "*.@__thumb", "*@Transcode")
 
 HASH_ALGORITHM = "sha256"
 HASH_EXT = ".sha256"
@@ -29,29 +28,29 @@ _dir_to_prefix = "backup_"
 
 
 @total_ordering
-class FileStatus(object):
-    def __init__(self, fileName=None, why=None): 
+class FileStatus:
+    def __init__(self, fileName=None, why=None):
         """
         Collect the reasons why files are skipped
         """
-        self.fileName = fileName 
-        self.why = why          
+        self.fileName = fileName
+        self.why = why
 
-    def __eq__(self, other): 
+    def __eq__(self, other):
         if not isinstance(other, FileStatus):
             return NotImplemented
         return self.fileName == other.fileName
 
-    def __hash__(self): 
+    def __hash__(self):
         return hash((self.fileName,))
 
-    def __lt__(self, other): 
+    def __lt__(self, other):
         if not isinstance(other, FileStatus):
             return NotImplemented
         return self.fileName < other.fileName
 
 
-class Flags(object):
+class Flags:
     def __init__(
         self,
         verbose=False,
@@ -79,44 +78,60 @@ class Flags(object):
 
 
 def print_help():
-    print('')
-    print(sys.argv[
-              0] + ' [-h] [-l | list-only] [-c | check-contents] [-s | summary] [-v | verbose]' \
-                   '\n [-i | input-dir] [-o | output-dir]' \
-                   '\n [--check-md5] [--check-sha256]')
-    print('')
-    print('Creates a tar cleaned of all files we do not want to send to offline archive.')
-    print('Ignores symbolic links')
-    print('Ignored patterns: [{}]'.format(IGNORE_PATTERNS))
-    print('New archives get a .sha256 file (sha256sum-style). Legacy .md5 files are still read for validation.\n')
+    print("")
+    print(
+        sys.argv[0]
+        + " [-h] [-l | list-only] [-c | check-contents] [-s | summary] [-v | verbose]"
+        "\n [-i | input-dir] [-o | output-dir]"
+        "\n [--check-md5] [--check-sha256]"
+    )
+    print("")
+    print(
+        "Creates a tar cleaned of all files we do not want to send to offline archive."
+    )
+    print("Ignores symbolic links")
+    print(f"Ignored patterns: [{IGNORE_PATTERNS}]")
+    print(
+        "New archives get a .sha256 file (sha256sum-style). Legacy .md5 files are still read for validation.\n"
+    )
 
-    print('\nTypical use cases:\n')
+    print("\nTypical use cases:\n")
 
-    print('Report a dry run:')
-    print(sys.argv[0] + ' -d <input directory> -l\n')
+    print("Report a dry run:")
+    print(sys.argv[0] + " -d <input directory> -l\n")
 
-    print('Report summary:')
-    print(sys.argv[0] + ' -i <input directory> -s\n')
+    print("Report summary:")
+    print(sys.argv[0] + " -i <input directory> -s\n")
 
-    print('Creating archives:')
-    print('With no output the default location is used: [{}]'.format(_dir_to_default))
-    print(sys.argv[0] + ' -i <input directory>')
-    print(sys.argv[0] + ' -i <input directory> -o <output directory>\n')
+    print("Creating archives:")
+    print(f"With no output the default location is used: [{_dir_to_default}]")
+    print(sys.argv[0] + " -i <input directory>")
+    print(sys.argv[0] + " -i <input directory> -o <output directory>\n")
 
-    print('Verbose and summary')
-    print(sys.argv[0] + ' -i <input directory> -o <output directory> -vs\n')
+    print("Verbose and summary")
+    print(sys.argv[0] + " -i <input directory> -o <output directory> -vs\n")
 
-    print('Checking archives and validating the contents:\n')
-    print('Its possible to validate the files for correctness against the originals and check none are missing in either direction.\n')
-    print('With -c, the hash file (.sha256 if present, else .md5) is checked against the tar.\n')
-    print(sys.argv[0] + ' -i <input directory> -o <output directory> -c\n')
+    print("Checking archives and validating the contents:\n")
+    print(
+        "Its possible to validate the files for correctness against the "
+        "originals and check none are missing in either direction.\n"
+    )
+    print(
+        "With -c, the hash file (.sha256 if present, else .md5) is checked against the tar.\n"
+    )
+    print(sys.argv[0] + " -i <input directory> -o <output directory> -c\n")
 
-    print('--check-sha256: check only the .sha256 file (exit after check).')
-    print('--check-md5: check only the legacy .md5 file (exit after check).\n')
+    print("--check-sha256: check only the .sha256 file (exit after check).")
+    print("--check-md5: check only the legacy .md5 file (exit after check).\n")
 
-    print('Most useful combination on creation is\n' + sys.argv[0] + ' -vsc -i <input directory> -o <output directory>\n\n')
+    print(
+        "Most useful combination on creation is\n"
+        + sys.argv[0]
+        + " -vsc -i <input directory> -o <output directory>\n\n"
+    )
 
     return
+
 
 def add_skip_file(
     ignored_files: set[FileStatus], src: str, name: str, why: str
@@ -128,11 +143,12 @@ def add_skip_file(
     :param name:
     :param why:
     """
-    
+
     file_status = FileStatus(fileName=os.path.join(src, name), why=why)
     ignored_files.add(file_status)
 
     return
+
 
 def list_tree(
     src: str,
@@ -157,7 +173,7 @@ def list_tree(
     errors = []
     for name in names:
         if name in ignored_names:
-            add_skip_file(skipped_files, src, name, 'skip pattern match')
+            add_skip_file(skipped_files, src, name, "skip pattern match")
             continue
 
         srcname = os.path.join(src, name)
@@ -165,16 +181,16 @@ def list_tree(
             if os.path.isdir(srcname) and not os.path.islink(srcname):
                 list_tree(srcname, included_files, skipped_files, ignore)
             elif os.path.islink(srcname):
-                add_skip_file(skipped_files, src, name, 'skip symbolic link')
+                add_skip_file(skipped_files, src, name, "skip symbolic link")
             else:
                 included_files.add(srcname)
 
         # What about devices, sockets etc.?
-        except (IOError, os.error) as why:
+        except OSError as why:
             errors.append((srcname, str(why)))
         # catch the Error from the recursive tree so that we can
         # continue with other files
-        except EnvironmentError as err:
+        except OSError as err:
             errors.extend(err.args[0])
 
     if errors:
@@ -183,9 +199,7 @@ def list_tree(
     return
 
 
-def create_archive(
-    tar_filename: str, included_files: set[str], flags: Flags
-) -> None:
+def create_archive(tar_filename: str, included_files: set[str], flags: Flags) -> None:
     """
     Create the archive and an associate md5 file.
     :param tar_filename:
@@ -195,12 +209,14 @@ def create_archive(
     i = len(included_files)
 
     if os.path.isfile(tar_filename):
-        sys.exit("Tar exists! Will not overwrite, user must remove. [{}]".format(tar_filename))
+        sys.exit(
+            f"Tar exists! Will not overwrite, user must remove. [{tar_filename}]"
+        )
 
     with tarfile.open(tar_filename, "w:bz2") as tar:
         for name in included_files:
             if flags.verbose:
-                print('a [{}] {}'.format(i, name))
+                print(f"a [{i}] {name}")
             tar.add(name, arcname=os.path.abspath(name))
             i -= 1
 
@@ -209,46 +225,40 @@ def create_archive(
     return
 
 
-def print_list(
-    included_files: set[str], skipped_files: set[FileStatus]
-) -> None:
+def print_list(included_files: set[str], skipped_files: set[FileStatus]) -> None:
     """
     Print files which will be [added, not added] to archive
     :param included_files:
     :param skipped_files:
     """
-    print('\n** List files only! **')
-    print('\nIgnore Names: [{}]'.format(', '.join(IGNORE_PATTERNS)))
+    print("\n** List files only! **")
+    print("\nIgnore Names: [{}]".format(", ".join(IGNORE_PATTERNS)))
 
-    print('--Include--')
+    print("--Include--")
     for file_name in sorted(included_files):
-        print('[{}]'.format(file_name))
+        print(f"[{file_name}]")
 
-    print('')
-    print('--Ignored--')
+    print("")
+    print("--Ignored--")
     for file_status in sorted(skipped_files):
-        print('[{}],[{}]'.format(file_status.why, file_status.fileName))
+        print(f"[{file_status.why}],[{file_status.fileName}]")
     return
 
 
-def print_summary(
-    included_files: set[str], skipped_files: set[FileStatus]
-) -> None:
+def print_summary(included_files: set[str], skipped_files: set[FileStatus]) -> None:
     """
     Print a sum totals.
     :param included_files:
     :param skipped_files:
     """
-    print('')
-    print('--Summary--')
-    print('{} included files.'.format(len(included_files)))
-    print('{} ignored files.\n'.format(len(skipped_files)))
+    print("")
+    print("--Summary--")
+    print(f"{len(included_files)} included files.")
+    print(f"{len(skipped_files)} ignored files.\n")
     return
 
 
-def create_to_dir(
-    dir_to: str, dir_to_prefix: str, dir_to_suffix: str
-) -> str:
+def create_to_dir(dir_to: str, dir_to_prefix: str, dir_to_suffix: str) -> str:
     """
     Create a new location for the file based on its name
     :param dir_to: Folder to write too.
@@ -273,7 +283,7 @@ def build_tar_location(dir_from: str, dir_to: str) -> str:
     """
     to_dir_path_end = os.path.basename(os.path.normpath(dir_from))
     archive_to_dir = create_to_dir(dir_to, _dir_to_prefix, to_dir_path_end)
-    tar_filename = archive_to_dir + '/' + to_dir_path_end + '.tar.bz2'
+    tar_filename = archive_to_dir + "/" + to_dir_path_end + ".tar.bz2"
 
     return tar_filename
 
@@ -286,7 +296,7 @@ def check_archive(tar_filename: str, included_files: set[str]) -> bool:
     :param included_files: The list of files the archive should contain.
     :return True if archive is ok
     """
-    print('\nChecking tar: [{}]'.format(tar_filename))
+    print(f"\nChecking tar: [{tar_filename}]")
 
     good_archive = True
     if not match_members_with_fs(tar_filename):
@@ -311,7 +321,7 @@ def check_md5(tar_filename: str) -> bool:
     md5_filename = tar_filename + MD5_EXT
     if os.path.isfile(md5_filename):
         md5_hash = generate_md5(tar_filename)
-        with open(md5_filename, 'r') as f:
+        with open(md5_filename) as f:
             stored_md5_hash = f.read().strip()
             return md5_hash == stored_md5_hash
     return False
@@ -325,13 +335,13 @@ def check_sha256(tar_filename: str) -> bool:
     sha256_filename = tar_filename + HASH_EXT
     if not os.path.isfile(sha256_filename):
         return False
-    with open(sha256_filename, 'r') as f:
+    with open(sha256_filename) as f:
         line = f.read().strip()
     # First 64 hex chars are the digest (sha256sum format)
     if len(line) < 64:
         return False
     stored_hex = line[:64]
-    if not all(c in '0123456789abcdef' for c in stored_hex.lower()):
+    if not all(c in "0123456789abcdef" for c in stored_hex.lower()):
         return False
     computed = generate_hash(tar_filename, HASH_ALGORITHM)
     return computed == stored_hex.lower()
@@ -351,9 +361,7 @@ def check_archive_hash(tar_filename: str) -> bool:
     return False
 
 
-def match_fs_with_members(
-    tar_filename: str, included_files: set[str]
-) -> bool:
+def match_fs_with_members(tar_filename: str, included_files: set[str]) -> bool:
     """
     Check the tar contains a file match for every one on the filesystem.
     :param tar_filename: The archive to check.
@@ -365,12 +373,12 @@ def match_fs_with_members(
     with tarfile.open(tar_filename, "r") as tar:
         member_fs_names = set()
         for member in tar.getmembers():
-            member_name_fs = os.path.join('/', member.name)
+            member_name_fs = os.path.join("/", member.name)
             member_fs_names.add(member_name_fs)
 
         for fs_name in included_files:
-            if not os.path.abspath(fs_name) in member_fs_names:
-                print('MISSING FROM TAR [{}]'.format(fs_name))
+            if os.path.abspath(fs_name) not in member_fs_names:
+                print(f"MISSING FROM TAR [{fs_name}]")
                 good_archive = False
 
     return good_archive
@@ -385,20 +393,19 @@ def match_members_with_fs(tar_filename: str) -> bool:
     good_archive = True
 
     with tarfile.open(tar_filename, "r") as tar:
-
         for member in tar.getmembers():
-            member_name_fs = os.path.join('/', member.name)
+            member_name_fs = os.path.join("/", member.name)
 
             if os.path.isfile(member_name_fs):
                 member_as_file = tar.extractfile(member)
                 with open(member_name_fs, "rb") as original_file:
                     if member_as_file.read() == original_file.read():
-                        print('MATCHED {}'.format(member_name_fs))
+                        print(f"MATCHED {member_name_fs}")
                     else:
-                        print('CORRUPT {}'.format(member_name_fs))
+                        print(f"CORRUPT {member_name_fs}")
                         good_archive = False
             else:
-                print('MISSING FROM  FS [{}]'.format(member_name_fs))
+                print(f"MISSING FROM  FS [{member_name_fs}]")
                 good_archive = False
 
     return good_archive
@@ -427,9 +434,7 @@ def generate_md5(filename: str) -> str:
     return generate_hash(filename, "md5")
 
 
-def write_hash(
-    tar_filename: str, flags: Flags, algorithm: str = "sha256"
-) -> None:
+def write_hash(tar_filename: str, flags: Flags, algorithm: str = "sha256") -> None:
     """
     Write hash to file. For sha256 uses sha256sum-style: hex  basename.
     :param tar_filename: Path to the tar file.
@@ -439,11 +444,11 @@ def write_hash(
     if algorithm == "sha256":
         hash_filename = tar_filename + HASH_EXT
         if flags.verbose:
-            print('\nWriting SHA-256 file: [{}]'.format(hash_filename))
+            print(f"\nWriting SHA-256 file: [{hash_filename}]")
         hex_digest = generate_hash(tar_filename, HASH_ALGORITHM)
         basename = os.path.basename(tar_filename)
-        line = "{}  {}\n".format(hex_digest, basename)
-        with open(hash_filename, 'w') as f:
+        line = f"{hex_digest}  {basename}\n"
+        with open(hash_filename, "w") as f:
             f.write(line)
     return
 
@@ -455,7 +460,7 @@ def main(argv: list[str]) -> None:
     """
     flags = Flags()
 
-    dir_from = ''
+    dir_from = ""
     dir_to = _dir_to_default
 
     skipped_files = set()
@@ -494,10 +499,12 @@ def main(argv: list[str]) -> None:
 
         if opt in ("-i", "--input-dir"):
             dir_from = arg
-            list_tree(src=dir_from
-                      , included_files=included_files
-                      , skipped_files=skipped_files
-                      , ignore=shutil.ignore_patterns(*IGNORE_PATTERNS))
+            list_tree(
+                src=dir_from,
+                included_files=included_files,
+                skipped_files=skipped_files,
+                ignore=shutil.ignore_patterns(*IGNORE_PATTERNS),
+            )
 
             if len(included_files) == 0:
                 sys.exit("* No files found to archive! **")
@@ -548,7 +555,7 @@ def main(argv: list[str]) -> None:
         sys.exit(0)
 
     if flags.verbose:
-        print('Archive to: [{}]\n'.format(tar_filename))
+        print(f"Archive to: [{tar_filename}]\n")
 
     if not flags.list_only:
         create_archive(tar_filename, included_files, flags)
@@ -556,7 +563,7 @@ def main(argv: list[str]) -> None:
     if flags.check_contents:
         if not check_archive(tar_filename, included_files):
             sys.exit("** Archive Matching Error: Check report! **")
-        print('\n** Archive Validation Success! **')
+        print("\n** Archive Validation Success! **")
 
     sys.exit(0)
 
