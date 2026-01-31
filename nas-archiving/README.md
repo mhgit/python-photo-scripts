@@ -6,7 +6,7 @@ nas-archiving
 
 **Description**
 
-Scripts to manage the creation of file storage archives. Builds a tar archive and validates files. The archive can then be uploaded to Glacier or similar; you're responsible for what you do next. An MD5 file is produced for checking after a restore.
+Scripts to manage the creation of file storage archives. Builds a tar archive and validates files. The archive can then be uploaded to Glacier or similar; you're responsible for what you do next. New archives get a SHA-256 checksum file (sha256sum-style) for verification; legacy MD5 files are still read for validation.
 
 **Tools setup**
 
@@ -20,8 +20,8 @@ Scripts to manage the creation of file storage archives. Builds a tar archive an
 **Scripts**
 
 - **setup.py** (`src/setup.py`): Creates the `target/` folder used for test output. Run once before testing if `target/` does not exist.
-- **clean-test-archive.py** (`src/clean-test-archive.py`): Removes the test archive and its MD5 file. The main script will not overwrite an existing archive, so use this before re-running tests (or delete the archive manually).
-- **Main CLI:** The `nas-archiving` command creates a tar suitable for uploading to Glacier. It only includes image-related files and ignores OS cruft and thumbnails. It can also validate an existing archive and its MD5.
+- **clean-test-archive.py** (`src/clean-test-archive.py`): Removes the test archive and its hash files (.sha256 and .md5). The main script will not overwrite an existing archive, so use this before re-running tests (or delete the archive manually).
+- **Main CLI:** The `nas-archiving` command creates a tar suitable for uploading to Glacier. It only includes image-related files and ignores OS cruft and thumbnails. New archives get a .sha256 file (sha256sum-style). It can validate an existing archive using .sha256 if present, or legacy .md5.
 
 **CLI details**
 
@@ -41,7 +41,8 @@ Creates a tar cleaned of all files we do not want to send to offline archive.
 | `-v`, `--verbose` | Verbose output |
 | `-i`, `--input-dir` | Input directory to archive (required) |
 | `-o`, `--output-dir` | Output directory for the archive |
-| `--check-md5` | Check the buddy MD5 file against a hash of the tar |
+| `--check-sha256` | Check only the .sha256 file against the tar |
+| `--check-md5` | Check only the legacy .md5 file (for old archives) |
 
 **Commands (from `nas-archiving` directory)**
 

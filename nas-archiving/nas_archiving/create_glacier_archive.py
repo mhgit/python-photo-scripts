@@ -20,13 +20,15 @@ from typing import Callable
 
 IGNORE_PATTERNS = ('*.DS_Store', '*.@__thumb', '*@Transcode')
 
+HASH_ALGORITHM = "sha256"
+HASH_EXT = ".sha256"
+MD5_EXT = ".md5"
+
 _dir_to_default = "/share/backup-jobs/aws-glacier"
 _dir_to_prefix = "backup_"
 
 
-from functools import total_ordering # Already added above
-
-@total_ordering # 
+@total_ordering
 class FileStatus(object):
     def __init__(self, fileName=None, why=None): 
         """
@@ -50,20 +52,30 @@ class FileStatus(object):
 
 
 class Flags(object):
-    def __init__(self, verbose=False, summary=False, list_only=False, check_contents=False, chk_md5=False):
+    def __init__(
+        self,
+        verbose=False,
+        summary=False,
+        list_only=False,
+        check_contents=False,
+        chk_md5=False,
+        chk_sha256=False,
+    ):
         """
         Collect args from the command line.
         :param verbose: Print progress and other notes.
         :param summary: Print summary information.
         :param list_only: Only list intentions.
         :param check_contents: Check the contents of an existing archive against the filesystem.
-        :param chk_md5: Check an md5 file
+        :param chk_md5: Check legacy .md5 file only.
+        :param chk_sha256: Check .sha256 file only.
         """
         self.verbose = verbose
         self.summary = summary
         self.list_only = list_only
         self.check_contents = check_contents
         self.chk_md5 = chk_md5
+        self.chk_sha256 = chk_sha256
 
 
 def print_help():
@@ -71,12 +83,12 @@ def print_help():
     print(sys.argv[
               0] + ' [-h] [-l | list-only] [-c | check-contents] [-s | summary] [-v | verbose]' \
                    '\n [-i | input-dir] [-o | output-dir]' \
-                   '\n [check-md5]')
+                   '\n [--check-md5] [--check-sha256]')
     print('')
     print('Creates a tar cleaned of all files we do not want to send to offline archive.')
     print('Ignores symbolic links')
     print('Ignored patterns: [{}]'.format(IGNORE_PATTERNS))
-    print('This also creates an md5 file for checking the hash of the tarfile.\n')
+    print('New archives get a .sha256 file (sha256sum-style). Legacy .md5 files are still read for validation.\n')
 
     print('\nTypical use cases:\n')
 
@@ -96,11 +108,11 @@ def print_help():
 
     print('Checking archives and validating the contents:\n')
     print('Its possible to validate the files for correctness against the originals and check none are missing in either direction.\n')
-    print('This also checks the MD5 file against a hash of the tar.\n')
+    print('With -c, the hash file (.sha256 if present, else .md5) is checked against the tar.\n')
     print(sys.argv[0] + ' -i <input directory> -o <output directory> -c\n')
 
-    print('\nThe --check-md5 flag will read in the buddy md5 file and check it against a hash of the tar.\n')
-    print('This will just do the check and exit fast.\n')
+    print('--check-sha256: check only the .sha256 file (exit after check).')
+    print('--check-md5: check only the legacy .md5 file (exit after check).\n')
 
     print('Most useful combination on creation is\n' + sys.argv[0] + ' -vsc -i <input directory> -o <output directory>\n\n')
 
@@ -192,7 +204,7 @@ def create_archive(
             tar.add(name, arcname=os.path.abspath(name))
             i -= 1
 
-    write_md5(tar_filename, flags)
+    write_hash(tar_filename, flags, HASH_ALGORITHM)
 
     return
 
@@ -282,29 +294,61 @@ def check_archive(tar_filename: str, included_files: set[str]) -> bool:
     if not match_fs_with_members(tar_filename, included_files):
         good_archive = False
 
-    if not check_md5(tar_filename):
-        print("\nERROR: MD5 Not Matched!")
+    if not check_archive_hash(tar_filename):
+        print("\nERROR: Hash Not Matched!")
         good_archive = False
     else:
-        print("\nMD5 Matched.")
+        print("\nHash Matched.")
 
     return good_archive
 
 
 def check_md5(tar_filename: str) -> bool:
     """
-    Generate an md5 off the tar and check it against the one on the fs.
+    Generate an md5 off the tar and check it against the one on the fs (legacy).
     :param tar_filename: Archive to generate from.
     """
-    md5_filename = tar_filename + '.md5'
+    md5_filename = tar_filename + MD5_EXT
     if os.path.isfile(md5_filename):
         md5_hash = generate_md5(tar_filename)
         with open(md5_filename, 'r') as f:
-            stored_md5_hash = f.read()
-            if not md5_hash == stored_md5_hash:
-                return False
-            else:
-                return True
+            stored_md5_hash = f.read().strip()
+            return md5_hash == stored_md5_hash
+    return False
+
+
+def check_sha256(tar_filename: str) -> bool:
+    """
+    Check the tar against its .sha256 file (sha256sum-style: hex  basename).
+    :param tar_filename: Archive to check.
+    """
+    sha256_filename = tar_filename + HASH_EXT
+    if not os.path.isfile(sha256_filename):
+        return False
+    with open(sha256_filename, 'r') as f:
+        line = f.read().strip()
+    # First 64 hex chars are the digest (sha256sum format)
+    if len(line) < 64:
+        return False
+    stored_hex = line[:64]
+    if not all(c in '0123456789abcdef' for c in stored_hex.lower()):
+        return False
+    computed = generate_hash(tar_filename, HASH_ALGORITHM)
+    return computed == stored_hex.lower()
+
+
+def check_archive_hash(tar_filename: str) -> bool:
+    """
+    Check hash: prefer .sha256, else .md5 (legacy). Return False if no hash file.
+    """
+    sha256_path = tar_filename + HASH_EXT
+    md5_path = tar_filename + MD5_EXT
+    if os.path.isfile(sha256_path):
+        return check_sha256(tar_filename)
+    if os.path.isfile(md5_path):
+        return check_md5(tar_filename)
+    print("\nNo hash file found (expected .sha256 or .md5).")
+    return False
 
 
 def match_fs_with_members(
@@ -360,31 +404,47 @@ def match_members_with_fs(tar_filename: str) -> bool:
     return good_archive
 
 
-def generate_md5(filename: str) -> str:
+def generate_hash(filename: str, algorithm: str = "sha256") -> str:
     """
-    Read the archive and produce an md5 string.
-    :param filename: Archive filename to read.
-    :return: md5
+    Compute the hex digest of a file using the given algorithm.
+    :param filename: Path to the file.
+    :param algorithm: Hash algorithm name (e.g. "sha256", "md5").
+    :return: Hex digest string.
     """
-    hash_md5 = hashlib.md5()
+    h = hashlib.new(algorithm)
     with open(filename, "rb") as f:
         for chunk in iter(lambda: f.read(4096), b""):
-            hash_md5.update(chunk)
-    return hash_md5.hexdigest()
+            h.update(chunk)
+    return h.hexdigest()
 
 
-def write_md5(tar_filename: str, flags: Flags) -> None:
+def generate_md5(filename: str) -> str:
     """
-    Write out an md5 string to file
-    :param tar_filename:
+    Read the file and produce an md5 hex string (for legacy .md5 read path).
+    :param filename: Archive filename to read.
+    :return: md5 hex digest
     """
-    md_filename = tar_filename + '.md5'
-    if flags.verbose:
-        print('\nWriting MD5 file: [{}]'.format(md_filename))
-    
-    md5_hex = generate_md5(tar_filename)
-    with open(md_filename, 'w') as f:
-        f.write(md5_hex)
+    return generate_hash(filename, "md5")
+
+
+def write_hash(
+    tar_filename: str, flags: Flags, algorithm: str = "sha256"
+) -> None:
+    """
+    Write hash to file. For sha256 uses sha256sum-style: hex  basename.
+    :param tar_filename: Path to the tar file.
+    :param flags: Verbose etc.
+    :param algorithm: "sha256" (new archives) or "md5" (legacy).
+    """
+    if algorithm == "sha256":
+        hash_filename = tar_filename + HASH_EXT
+        if flags.verbose:
+            print('\nWriting SHA-256 file: [{}]'.format(hash_filename))
+        hex_digest = generate_hash(tar_filename, HASH_ALGORITHM)
+        basename = os.path.basename(tar_filename)
+        line = "{}  {}\n".format(hex_digest, basename)
+        with open(hash_filename, 'w') as f:
+            f.write(line)
     return
 
 
@@ -406,9 +466,20 @@ def main(argv: list[str]) -> None:
         sys.exit(2)
 
     try:
-        opts, args = getopt.getopt(argv, "chi:lo:sv",
-                                   ["check-contents", "check-md5", "input-dir=", "list-only"
-                                       , "output-dir=", "summary", "verbose", ])
+        opts, args = getopt.getopt(
+            argv,
+            "chi:lo:sv",
+            [
+                "check-contents",
+                "check-md5",
+                "check-sha256",
+                "input-dir=",
+                "list-only",
+                "output-dir=",
+                "summary",
+                "verbose",
+            ],
+        )
     except getopt.GetoptError:
         print_help()
         sys.exit(2)
@@ -446,6 +517,9 @@ def main(argv: list[str]) -> None:
         if opt == "--check-md5":
             flags.chk_md5 = True
 
+        if opt == "--check-sha256":
+            flags.chk_sha256 = True
+
     if not dir_from:
         print_help()
         sys.exit("\n ERROR: -i flag is mandatory!")
@@ -461,12 +535,17 @@ def main(argv: list[str]) -> None:
 
     tar_filename = build_tar_location(dir_from, dir_to)
 
+    if (not flags.check_contents) and flags.chk_sha256:
+        if not check_sha256(tar_filename):
+            sys.exit("\nERROR: SHA-256 Not Matched!")
+        print("\nSHA-256 Matched.")
+        sys.exit(0)
+
     if (not flags.check_contents) and flags.chk_md5:
         if not check_md5(tar_filename):
             sys.exit("\nERROR: MD5 Not Matched!")
-        else:
-            print("\nMD5 Matched.")
-            sys.exit(0)
+        print("\nMD5 Matched.")
+        sys.exit(0)
 
     if flags.verbose:
         print('Archive to: [{}]\n'.format(tar_filename))
