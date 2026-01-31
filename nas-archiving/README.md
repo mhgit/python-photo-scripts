@@ -6,51 +6,65 @@ nas-archiving
 
 **Description**
 
-Scripts to manage the creation of file storage archives.  Builds a tar archive and validate files.  The archive can then be uploaded to glacier or similar, but your responsible what what you do next.  An MD5 is be produced for checking after a restore.
+Scripts to manage the creation of file storage archives. Builds a tar archive and validates files. The archive can then be uploaded to Glacier or similar; you're responsible for what you do next. An MD5 file is produced for checking after a restore.
 
-**setup.py:** Before building or testing run the script which will create a target
-folder for creating the archive into.
+**Tools setup**
 
-**clean-test-archive.py:** The create-glacier-archive.py is designed not to overwrite an existing archive.  On a nas a large archive can create a long time to build.  There is no force function the user has to remove the archive deliberately outside the script.  This script will clean the test output and can be called before running the script during testing to clear down.  In pycharm you can add a runner for this and call that from any test runners.
+- **Python:** 3.14 (pinned in `.python-version`).
+- **uv:** [uv](https://docs.astral.sh/uv/) is used for dependency and environment management. Install it (e.g. `curl -LsSf https://astral.sh/uv/install.sh | sh` or `pip install uv`), then from the `nas-archiving` directory run:
+  ```bash
+  uv sync
+  ```
+  This creates a virtual environment and installs the project and its CLI. You only need to run `uv sync` after cloning or when dependencies change.
 
-**The main script.**
+**Scripts**
 
-**create-glacier-archive.py:** Creates a tar suitable for uploading to glacier.  Pass -h to see the instructions.  The idea behind it is to only take image files into the archive.  Ignores any os files or thumbnails etc.
+- **setup.py** (`src/setup.py`): Creates the `target/` folder used for test output. Run once before testing if `target/` does not exist.
+- **clean-test-archive.py** (`src/clean-test-archive.py`): Removes the test archive and its MD5 file. The main script will not overwrite an existing archive, so use this before re-running tests (or delete the archive manually).
+- **Main CLI:** The `nas-archiving` command creates a tar suitable for uploading to Glacier. It only includes image-related files and ignores OS cruft and thumbnails. It can also validate an existing archive and its MD5.
 
-In addition, the script has facilities for checking and validating the archive and buddy md5 file.
-
-**Details**
+**CLI details**
 
 Creates a tar cleaned of all files we do not want to send to offline archive.
 
-Ignores symbolic links
+- Ignores symbolic links.
+- Ignored patterns: `*.DS_Store`, `*.@__thumb`, `*@Transcode`.
 
-Ignored patterns: \[('*.DS_Store', '*.@__thumb', '*@Transcode')]
+**Flags**
 
-Flags: 
+| Flag | Description |
+|------|-------------|
+| `-h` | Show help |
+| `-l`, `--list-only` | Dry run: list file operations only |
+| `-c`, `--check-contents` | Validate archive contents against original files |
+| `-s`, `--summary` | Summary report |
+| `-v`, `--verbose` | Verbose output |
+| `-i`, `--input-dir` | Input directory to archive (required) |
+| `-o`, `--output-dir` | Output directory for the archive |
+| `--check-md5` | Check the buddy MD5 file against a hash of the tar |
 
- \[-h]                  - Show the help
- 
- \[-l | list-only]      - Dry run list file operations.
- 
- \[-c | check-contents] - Validate archive contents against original files.
- 
- \[-s | summary]        - Summary report
- 
- \[-v | verbose]
-  
- \[-i | input-dir]
-  
- \[-o | output-dir]
- 
- \[check-md5]           - read in the buddy md5 file and check it against a hash of the tar.
+**Commands (from `nas-archiving` directory)**
 
+All commands assume you have run `uv sync` at least once.
 
-**Testing**
-The project contains some small test images and some folders to use during manual testing.  Commands:
+```bash
+# Create target folder (if missing)
+uv run python src/setup.py
 
-# Dry run
-python src/create-glacier-archive.py -vsl -i test-files/image-test-in-area/share/Multimedia-enc/pictures/Archive_PS1/store0035/ -o target/image-test-out-area/backup_store0035
+# Dry run — list what would be archived
+uv run nas-archiving -vsl -i test-files/image-test-in-area/share/Multimedia-enc/pictures/Archive_PS1/store0035/ -o target/image-test-out-area
 
-# Create the test archive
-python src/create-glacier-archive.py -vsc -i test-files/image-test-in-area/share/Multimedia-enc/pictures/Archive_PS1/store0035/ -o target/image-test-out-area/backup_store0035
+# Create the test archive and validate it
+uv run nas-archiving -vsc -i test-files/image-test-in-area/share/Multimedia-enc/pictures/Archive_PS1/store0035/ -o target/image-test-out-area
+
+# Remove test archive before re-running (optional)
+uv run python src/clean-test-archive.py
+```
+
+You can use `uv run python main.py` instead of `uv run nas-archiving` with the same flags.
+
+**Example: create and check a real archive**
+
+```bash
+uv run nas-archiving -vsc -i /path/to/your/photos -o /path/to/backup/output
+```

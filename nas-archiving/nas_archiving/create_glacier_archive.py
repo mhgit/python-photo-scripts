@@ -6,6 +6,8 @@
 # the final archive will be /share/backup-jobs/aws-glacier/backup_store0035/store0035.tar.bz2
 #
 
+from __future__ import annotations
+
 import getopt
 import hashlib
 import os
@@ -14,6 +16,7 @@ import sys
 import tarfile
 import types
 from functools import total_ordering
+from typing import Callable
 
 IGNORE_PATTERNS = ('*.DS_Store', '*.@__thumb', '*@Transcode')
 
@@ -103,9 +106,9 @@ def print_help():
 
     return
 
-def add_skip_file(ignored_files, src, name, why):
-    # type: (set, str, str, str) -> None
-
+def add_skip_file(
+    ignored_files: set[FileStatus], src: str, name: str, why: str
+) -> None:
     """
     Collect skipped files
     :param ignored_files:
@@ -119,8 +122,12 @@ def add_skip_file(ignored_files, src, name, why):
 
     return
 
-def list_tree(src, included_files, skipped_files, ignore=None):
-    # type: (str, set, set, types.FunctionType) -> None
+def list_tree(
+    src: str,
+    included_files: set[str],
+    skipped_files: set[FileStatus],
+    ignore: Callable[[str, list[str]], set[str]] | None = None,
+) -> None:
     """
     Walk the tree and find all files.  Populates ignored_files and included_files
     :param src: Route folder name.
@@ -164,8 +171,9 @@ def list_tree(src, included_files, skipped_files, ignore=None):
     return
 
 
-def create_archive(tar_filename, included_files, flags):
-    # type: (str, set, Flags) -> None
+def create_archive(
+    tar_filename: str, included_files: set[str], flags: Flags
+) -> None:
     """
     Create the archive and an associate md5 file.
     :param tar_filename:
@@ -189,8 +197,9 @@ def create_archive(tar_filename, included_files, flags):
     return
 
 
-def print_list(included_files, skipped_files):
-    # type: (set, set) -> None
+def print_list(
+    included_files: set[str], skipped_files: set[FileStatus]
+) -> None:
     """
     Print files which will be [added, not added] to archive
     :param included_files:
@@ -210,8 +219,9 @@ def print_list(included_files, skipped_files):
     return
 
 
-def print_summary(included_files, skipped_files):
-    # type: (set, set) -> None
+def print_summary(
+    included_files: set[str], skipped_files: set[FileStatus]
+) -> None:
     """
     Print a sum totals.
     :param included_files:
@@ -224,8 +234,9 @@ def print_summary(included_files, skipped_files):
     return
 
 
-def create_to_dir(dir_to, dir_to_prefix, dir_to_suffix):
-    # type: (str, str, str) -> str
+def create_to_dir(
+    dir_to: str, dir_to_prefix: str, dir_to_suffix: str
+) -> str:
     """
     Create a new location for the file based on its name
     :param dir_to: Folder to write too.
@@ -241,8 +252,7 @@ def create_to_dir(dir_to, dir_to_prefix, dir_to_suffix):
     return create_dir
 
 
-def build_tar_location(dir_from, dir_to):
-    # type: (str, str) -> str
+def build_tar_location(dir_from: str, dir_to: str) -> str:
     """
     Create the folder where the tar will be written and return the name.
     :param dir_from: Where to find the files.
@@ -256,8 +266,7 @@ def build_tar_location(dir_from, dir_to):
     return tar_filename
 
 
-def check_archive(tar_filename, included_files):
-    # type: (str, set) -> bool
+def check_archive(tar_filename: str, included_files: set[str]) -> bool:
     """
     Check the contents of the tar against the original files.
     Check no files are missing in the archive.
@@ -282,8 +291,7 @@ def check_archive(tar_filename, included_files):
     return good_archive
 
 
-def check_md5(tar_filename):
-    # type: (str) -> bool
+def check_md5(tar_filename: str) -> bool:
     """
     Generate an md5 off the tar and check it against the one on the fs.
     :param tar_filename: Archive to generate from.
@@ -299,8 +307,9 @@ def check_md5(tar_filename):
                 return True
 
 
-def match_fs_with_members(tar_filename, included_files):
-    # type: (str, set) -> bool
+def match_fs_with_members(
+    tar_filename: str, included_files: set[str]
+) -> bool:
     """
     Check the tar contains a file match for every one on the filesystem.
     :param tar_filename: The archive to check.
@@ -323,8 +332,7 @@ def match_fs_with_members(tar_filename, included_files):
     return good_archive
 
 
-def match_members_with_fs(tar_filename):
-    # type: (str) -> bool
+def match_members_with_fs(tar_filename: str) -> bool:
     """
     Read each file in the archive and deep match agains the original on the filesystem.
     :param tar_filename: The archive to check.
@@ -352,8 +360,7 @@ def match_members_with_fs(tar_filename):
     return good_archive
 
 
-def generate_md5(filename):
-    # type: (str) -> str
+def generate_md5(filename: str) -> str:
     """
     Read the archive and produce an md5 string.
     :param filename: Archive filename to read.
@@ -366,8 +373,7 @@ def generate_md5(filename):
     return hash_md5.hexdigest()
 
 
-def write_md5(tar_filename, flags):
-    # type: (str, Flags) -> None
+def write_md5(tar_filename: str, flags: Flags) -> None:
     """
     Write out an md5 string to file
     :param tar_filename:
@@ -375,16 +381,14 @@ def write_md5(tar_filename, flags):
     md_filename = tar_filename + '.md5'
     if flags.verbose:
         print('\nWriting MD5 file: [{}]'.format(md_filename))
-
-        md5_hex = generate_md5(tar_filename)
-        with open(md_filename, 'w') as f:
-            f.write(md5_hex)
-
+    
+    md5_hex = generate_md5(tar_filename)
+    with open(md_filename, 'w') as f:
+        f.write(md5_hex)
     return
 
 
-def main(argv):
-    # type: (list) -> None
+def main(argv: list[str]) -> None:
     """
     Create a clean archive.  Process incoming args.
     :param argv: Program arguments.
