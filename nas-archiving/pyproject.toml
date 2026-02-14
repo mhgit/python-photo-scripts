@@ -29,6 +29,8 @@ pythonpath = ["."]
 [tool.ruff]
 target-version = "py314"
 line-length = 120
+# Avoid traversing test-files (contains symlinks that can cause ELOOP in CI)
+exclude = ["test-files"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP"]  # pycodestyle errors, pyflakes, isort, pyupgrade
