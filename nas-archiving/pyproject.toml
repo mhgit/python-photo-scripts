@@ -18,8 +18,13 @@ package = true
 
 [dependency-groups]
 dev = [
+    "pytest>=8.0.0",
     "ruff>=0.14.14",
 ]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
 
 [tool.ruff]
 target-version = "py314"

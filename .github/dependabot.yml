@@ -1,0 +1,25 @@
+# Dependabot: version updates and security PRs using uv
+# https://docs.github.com/en/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
+version: 2
+
+updates:
+  - package-ecosystem: "uv"
+    # This repo: uv project is in a subdir. For a repo with pyproject.toml at root, use directory: "/"
+    directory: "/nas-archiving"
+    schedule:
+      interval: "weekly"
+      day: "sunday"
+      time: "09:00"
+      timezone: "Europe/London"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "deps"
+    groups:
+      # Single PR for all version updates (non-security)
+      version-updates:
+        applies-to: "version-updates"
+        patterns: ["*"]
+      # Single PR for all security updates
+      security:
+        applies-to: "security-updates"
+        patterns: ["*"]
