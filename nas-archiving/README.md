@@ -48,6 +48,14 @@ Creates a tar cleaned of all files we do not want to send to offline archive.
 
 All commands assume you have run `uv sync` at least once.
 
+**Run tests and lint**
+
+```bash
+uv run pytest tests/ -v
+uv run ruff check .
+uv run ruff format --check .
+```
+
 ```bash
 # Create target folder (if missing)
 uv run python src/setup.py
