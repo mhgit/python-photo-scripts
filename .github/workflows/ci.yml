@@ -22,6 +22,8 @@ jobs:
         uses: astral-sh/setup-uv@v4
         with:
           enable-cache: true
+          # Pin to lockfile path so cache search doesn't walk into test-files (symlinks → ELOOP)
+          cache-dependency-glob: "nas-archiving/uv.lock"
 
       - name: Set up Python
         run: uv python install
