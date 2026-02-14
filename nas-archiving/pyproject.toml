@@ -18,6 +18,7 @@ package = true
 
 [dependency-groups]
 dev = [
+    "pytest-cov>=6.0.0",
     "pytest>=8.0.0",
     "ruff>=0.14.14",
 ]
@@ -25,6 +26,7 @@ dev = [
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]
+addopts = "-v --cov=nas_archiving --cov-report=term-missing"
 
 [tool.ruff]
 target-version = "py314"

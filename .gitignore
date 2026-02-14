@@ -1,8 +1,10 @@
 **/target
 **/nas_archiving.egg-info/
+.coverage
 .direnv/
 .venv/
 .envrc
+htmlcov/
 .vscode
 __pycache__/
 
