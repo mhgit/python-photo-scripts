@@ -80,20 +80,15 @@ class Flags:
 def print_help():
     print("")
     print(
-        sys.argv[0]
-        + " [-h] [-l | list-only] [-c | check-contents] [-s | summary] [-v | verbose]"
+        sys.argv[0] + " [-h] [-l | list-only] [-c | check-contents] [-s | summary] [-v | verbose]"
         "\n [-i | input-dir] [-o | output-dir]"
         "\n [--check-md5] [--check-sha256]"
     )
     print("")
-    print(
-        "Creates a tar cleaned of all files we do not want to send to offline archive."
-    )
+    print("Creates a tar cleaned of all files we do not want to send to offline archive.")
     print("Ignores symbolic links")
     print(f"Ignored patterns: [{IGNORE_PATTERNS}]")
-    print(
-        "New archives get a .sha256 file (sha256sum-style). Legacy .md5 files are still read for validation.\n"
-    )
+    print("New archives get a .sha256 file (sha256sum-style). Legacy .md5 files are still read for validation.\n")
 
     print("\nTypical use cases:\n")
 
@@ -116,9 +111,7 @@ def print_help():
         "Its possible to validate the files for correctness against the "
         "originals and check none are missing in either direction.\n"
     )
-    print(
-        "With -c, the hash file (.sha256 if present, else .md5) is checked against the tar.\n"
-    )
+    print("With -c, the hash file (.sha256 if present, else .md5) is checked against the tar.\n")
     print(sys.argv[0] + " -i <input directory> -o <output directory> -c\n")
 
     print("--check-sha256: check only the .sha256 file (exit after check).")
@@ -133,9 +126,7 @@ def print_help():
     return
 
 
-def add_skip_file(
-    ignored_files: set[FileStatus], src: str, name: str, why: str
-) -> None:
+def add_skip_file(ignored_files: set[FileStatus], src: str, name: str, why: str) -> None:
     """
     Collect skipped files
     :param ignored_files:
@@ -209,9 +200,7 @@ def create_archive(tar_filename: str, included_files: set[str], flags: Flags) ->
     i = len(included_files)
 
     if os.path.isfile(tar_filename):
-        sys.exit(
-            f"Tar exists! Will not overwrite, user must remove. [{tar_filename}]"
-        )
+        sys.exit(f"Tar exists! Will not overwrite, user must remove. [{tar_filename}]")
 
     with tarfile.open(tar_filename, "w:bz2") as tar:
         for name in included_files:
