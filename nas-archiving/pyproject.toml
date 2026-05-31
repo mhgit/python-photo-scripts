@@ -19,8 +19,8 @@ package = true
 [dependency-groups]
 dev = [
     "pytest-cov>=6.0.0",
-    "pytest>=8.0.0",
-    "ruff>=0.14.14",
+    "pytest>=9.0.3",
+    "ruff>=0.15.14",
 ]
 
 [tool.pytest.ini_options]
