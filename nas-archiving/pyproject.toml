@@ -20,7 +20,7 @@ package = true
 dev = [
     "pytest-cov>=6.0.0",
     "pytest>=9.0.3",
-    "ruff>=0.15.14",
+    "ruff>=0.15.16",
 ]
 
 [tool.pytest.ini_options]
