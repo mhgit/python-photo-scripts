@@ -35,4 +35,5 @@ line-length = 120
 exclude = ["test-files"]
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "UP"]  # pycodestyle errors, pyflakes, isort, pyupgrade
+# pycodestyle errors, pyflakes, isort, pyupgrade, bugbear, flake8-simplify
+select = ["E", "F", "I", "UP", "B", "SIM"]

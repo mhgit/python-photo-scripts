@@ -27,6 +27,18 @@ _dir_to_default = "/share/backup-jobs/aws-glacier"
 _dir_to_prefix = "backup_"
 
 
+class ArchiveWalkError(Exception):
+    """
+    Raised when one or more paths could not be walked.
+    Carries every error collected during the walk, including those
+    propagated up from recursive calls.
+    """
+
+    def __init__(self, errors: list[tuple[str, str]]):
+        super().__init__(errors)
+        self.errors = errors
+
+
 @total_ordering
 class FileStatus:
     def __init__(self, fileName=None, why=None):
@@ -156,12 +168,9 @@ def list_tree(
     """
     names = os.listdir(src)
 
-    if ignore is not None:
-        ignored_names = ignore(src, names)
-    else:
-        ignored_names = set()
+    ignored_names = ignore(src, names) if ignore is not None else set()
 
-    errors = []
+    errors: list[tuple[str, str]] = []
     for name in names:
         if name in ignored_names:
             add_skip_file(skipped_files, src, name, "skip pattern match")
@@ -179,13 +188,13 @@ def list_tree(
         # What about devices, sockets etc.?
         except OSError as why:
             errors.append((srcname, str(why)))
-        # catch the Error from the recursive tree so that we can
+        # collect the errors from the recursive walk so that we can
         # continue with other files
-        except OSError as err:
-            errors.extend(err.args[0])
+        except ArchiveWalkError as err:
+            errors.extend(err.errors)
 
     if errors:
-        raise Exception(errors)
+        raise ArchiveWalkError(errors)
 
     return
 

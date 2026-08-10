@@ -13,6 +13,7 @@ from nas_archiving.create_glacier_archive import (
     HASH_EXT,
     IGNORE_PATTERNS,
     MD5_EXT,
+    ArchiveWalkError,
     FileStatus,
     Flags,
     add_skip_file,
@@ -245,6 +246,35 @@ class TestListTree:
 
         assert len(included) == 0
         assert len(skipped) == 0
+
+    def test_unreadable_subdir_error_propagates_to_root(self, tmp_path: Path) -> None:
+        """An OSError deep in the tree is aggregated and raised once at the top."""
+        readable = tmp_path / "readable"
+        readable.mkdir()
+        (readable / "keep.jpg").write_bytes(b"x")
+
+        # Nested two deep so the error has to cross a recursive call to reach the root.
+        blocked = tmp_path / "outer" / "blocked"
+        blocked.mkdir(parents=True)
+        (blocked / "hidden.jpg").write_bytes(b"x")
+        blocked.chmod(0o000)
+
+        included: set[str] = set()
+        skipped: set[FileStatus] = set()
+
+        try:
+            with pytest.raises(ArchiveWalkError) as exc_info:
+                list_tree(str(tmp_path), included, skipped, ignore=None)
+        finally:
+            blocked.chmod(0o755)
+
+        # The unreadable directory is reported...
+        errors = exc_info.value.errors
+        assert len(errors) == 1
+        assert errors[0][0] == str(blocked)
+
+        # ...and the walk still collected the readable side of the tree.
+        assert {os.path.basename(f) for f in included} == {"keep.jpg"}
 
 
 # ===========================================================================
