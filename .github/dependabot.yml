@@ -6,6 +6,7 @@ updates:
   - package-ecosystem: "uv"
     # This repo: uv project is in a subdir. For a repo with pyproject.toml at root, use directory: "/"
     directory: "/nas-archiving"
+    target-branch: "develop"
     schedule:
       interval: "weekly"
       day: "sunday"
