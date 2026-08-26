@@ -6,6 +6,14 @@ updates:
   - package-ecosystem: "uv"
     # This repo: uv project is in a subdir. For a repo with pyproject.toml at root, use directory: "/"
     directory: "/nas-archiving"
+    # Version updates are raised against develop, our integration branch, and
+    # reach main via the normal develop -> main promotion.
+    #
+    # NOTE: this does NOT apply to security updates. Dependabot always raises
+    # security PRs against the repository's default branch (main), and ignores
+    # the per-ecosystem config below for them, so the "security" group and the
+    # "deps" commit prefix have no effect on those. Expect security PRs to
+    # arrive on main ungrouped; merge them there, then sync develop from main.
     target-branch: "develop"
     schedule:
       interval: "weekly"
@@ -20,7 +28,26 @@ updates:
       version-updates:
         applies-to: "version-updates"
         patterns: ["*"]
-      # Single PR for all security updates
+      # Single PR for all security updates. Retained for the day GitHub lets
+      # target-branch apply to security updates; currently inert (see above).
+      security:
+        applies-to: "security-updates"
+        patterns: ["*"]
+
+  # Security updates: only ever run on the default branch, so this entry has no
+  # target-branch. open-pull-requests-limit: 0 disables version updates here so
+  # they are not duplicated against main.
+  - package-ecosystem: "uv"
+    directory: "/nas-archiving"
+    schedule:
+      interval: "weekly"
+      day: "sunday"
+      time: "09:00"
+      timezone: "Europe/London"
+    open-pull-requests-limit: 0
+    commit-message:
+      prefix: "deps"
+    groups:
       security:
         applies-to: "security-updates"
         patterns: ["*"]
